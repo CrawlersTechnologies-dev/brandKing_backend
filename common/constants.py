@@ -1,0 +1,9 @@
+ROLE_ADMIN = 'ADMIN'
+ROLE_SUB_ADMIN = 'SUB_ADMIN'
+ROLE_EMPLOYEE = 'EMPLOYEE'
+
+ROLE_CHOICES = (
+    (ROLE_ADMIN, 'Admin'),
+    (ROLE_SUB_ADMIN, 'Sub-Admin'),
+    (ROLE_EMPLOYEE, 'Employee'),
+)

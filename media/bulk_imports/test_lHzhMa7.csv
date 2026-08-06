@@ -1,0 +1,2 @@
+product_name,product_code,sku,category,brand,product_type,hsn_code,gst_rate,mrp,selling_price,purchase_price,barcode,description
+Test Shirt,TS-01,SKU-01,Shirts,Nike,Regular,6109,18,1000.00,900.00,500.00,,Test desc

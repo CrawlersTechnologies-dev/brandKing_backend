@@ -1,0 +1,2 @@
+product_name,product_code,sku,category,brand,product_type,hsn_code,gst_rate,mrp,selling_price,purchase_price,barcode,description
+Test Shirt 2,TS-02,SKU-02,NonExistent,Nike,FakeType,6109,99,-100,900.00,500.00,,Test desc
