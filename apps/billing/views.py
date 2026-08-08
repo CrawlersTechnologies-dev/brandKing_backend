@@ -106,3 +106,15 @@ class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         branch = self.request.user.branch
         return Invoice.objects.filter(branch=branch).order_by('-created_at')
+
+    @action(detail=True, methods=['get'])
+    def print(self, request, pk=None):
+        from .services import ReceiptPrinterService
+        from django.http import HttpResponse
+        
+        invoice = self.get_object()
+        pdf_buffer = ReceiptPrinterService.generate_receipt_pdf(invoice)
+        
+        response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="receipt_{invoice.invoice_number}.pdf"'
+        return response

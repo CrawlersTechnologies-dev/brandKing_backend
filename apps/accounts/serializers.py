@@ -29,7 +29,15 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'email', 'first_name', 'last_name', 'phone_number', 'address', 'role', 'branch', 'branch_details', 'is_active', 'password', 'documents']
         extra_kwargs = {
             'password': {'write_only': True},
+            'is_active': {'default': True},
         }
+
+    def to_internal_value(self, data):
+        # Workaround for DRF multipart/form-data boolean parsing
+        mutable_data = data.copy() if hasattr(data, 'copy') else data
+        if 'is_active' not in mutable_data:
+            mutable_data['is_active'] = True
+        return super().to_internal_value(mutable_data)
 
     def create(self, validated_data):
         password = validated_data.pop('password', None)
@@ -46,3 +54,11 @@ class UserSerializer(serializers.ModelSerializer):
             user.set_password(password)
             user.save()
         return user
+
+class ForgotPasswordRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+class ResetPasswordRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    otp = serializers.CharField(max_length=6, min_length=6)
+    new_password = serializers.CharField(min_length=6)

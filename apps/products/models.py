@@ -139,15 +139,17 @@ class Product(models.Model):
     brand = models.ForeignKey(Brand, on_delete=models.RESTRICT, blank=True, null=True)
     
     product_type = models.ForeignKey(ProductType, on_delete=models.RESTRICT)
+    size = models.CharField(max_length=50, blank=True, null=True)
+    colour = models.CharField(max_length=50, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
-    image = models.ImageField(upload_to='products/', blank=True, null=True)
+    product_image = models.ImageField(upload_to='products/', blank=True, null=True)
     
     hsn_code = models.ForeignKey(HSNCode, on_delete=models.RESTRICT)
     gst_rate = models.ForeignKey(GSTRate, on_delete=models.RESTRICT, null=True, blank=True)
     
     mrp = models.DecimalField(max_digits=10, decimal_places=2)
     selling_price = models.DecimalField(max_digits=10, decimal_places=2) # GST-inclusive
-    purchase_price = models.DecimalField(max_digits=10, decimal_places=2)
+    purchase_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, blank=True, null=True)
     
     is_active = models.BooleanField(default=True)
     is_locked = models.BooleanField(default=False)

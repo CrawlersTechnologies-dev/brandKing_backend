@@ -131,3 +131,6 @@ SIMPLE_JWT = {
 
 # CORS Config
 CORS_ALLOW_ALL_ORIGINS = True
+
+# Console Email Backend for local development
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

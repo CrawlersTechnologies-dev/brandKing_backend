@@ -2,7 +2,7 @@ from rest_framework import viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from common.permissions import IsGlobalAdmin
-from common.responses import success_response
+from common.responses import success_response, error_response
 from .models import User, UserDocument
 from .serializers import UserSerializer, UserDocumentSerializer, DocumentVerifySerializer
 from .permissions import IsDocumentOwnerOrAdminOrSubAdmin
@@ -342,3 +342,71 @@ def serve_document(request, document_id):
         
     response = FileResponse(doc.file.open('rb'))
     return response
+
+
+from django.core.mail import send_mail
+from .models import PasswordResetOTP
+from .serializers import ForgotPasswordRequestSerializer, ResetPasswordRequestSerializer
+from django.conf import settings
+import random
+from rest_framework.permissions import AllowAny
+
+class ForgotPasswordView(APIView):
+    permission_classes = [AllowAny]
+    def post(self, request):
+        serializer = ForgotPasswordRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email']
+        user = User.objects.filter(email=email).first()
+        if not user:
+            return success_response(message='If the email exists, an OTP has been sent.')
+        
+        # Hardcoded for testing
+        otp = '123456'
+        PasswordResetOTP.objects.create(user=user, otp=otp)
+        
+        send_mail(
+            'Password Reset OTP',
+            f'Your OTP for password reset is {otp}. It is valid for 10 minutes.',
+            getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@brandking.com'),
+            [email],
+            fail_silently=False,
+        )
+        return success_response(message='If the email exists, an OTP has been sent.')
+
+class ResetPasswordView(APIView):
+    permission_classes = [AllowAny]
+    def post(self, request):
+        serializer = ResetPasswordRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email']
+        otp = serializer.validated_data['otp']
+        new_password = serializer.validated_data['new_password']
+        
+        user = User.objects.filter(email=email).first()
+        if not user:
+            return error_response(message='Invalid email or OTP.', status=400)
+            
+        otp_record = PasswordResetOTP.objects.filter(user=user, otp=otp, is_used=False).order_by('-created_at').first()
+        if not otp_record:
+            return error_response(message='Invalid email or OTP.', status=400)
+            
+        from datetime import timedelta
+        if timezone.now() > otp_record.created_at + timedelta(minutes=10):
+            return error_response(message='OTP has expired.', status=400)
+            
+        user.set_password(new_password)
+        user.save()
+        
+        otp_record.is_used = True
+        otp_record.save()
+        
+        AuditService.log(
+            user=user,
+            action='PASSWORD_RESET',
+            module='ACCOUNTS',
+            object_type='User',
+            object_id=user.id
+        )
+        
+        return success_response(message='Password reset successfully.')

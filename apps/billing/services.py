@@ -276,3 +276,91 @@ class CheckoutService:
         )
         
         return invoice
+
+from io import BytesIO
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import mm
+
+class ReceiptPrinterService:
+    @staticmethod
+    def generate_receipt_pdf(invoice):
+        buffer = BytesIO()
+        
+        # 80mm thermal receipt
+        width = 80 * mm
+        # Height is dynamic based on items, we'll set a long length and the frontend/printer handles cut
+        height = 200 * mm 
+        
+        c = canvas.Canvas(buffer, pagesize=(width, height))
+        
+        y = height - 10 * mm
+        
+        # Header
+        c.setFont("Helvetica-Bold", 12)
+        c.drawCentredString(width / 2.0, y, "BRAND KING")
+        y -= 6 * mm
+        
+        c.setFont("Helvetica", 8)
+        c.drawCentredString(width / 2.0, y, f"Branch: {invoice.branch.name}")
+        y -= 4 * mm
+        c.drawCentredString(width / 2.0, y, f"GSTIN: {invoice.branch.code}123456789")
+        y -= 8 * mm
+        
+        # Details
+        c.setFont("Helvetica", 8)
+        c.drawString(4 * mm, y, f"Invoice No: {invoice.invoice_number}")
+        y -= 4 * mm
+        c.drawString(4 * mm, y, f"Date: {invoice.created_at.strftime('%Y-%m-%d %H:%M')}")
+        y -= 4 * mm
+        c.drawString(4 * mm, y, f"Cashier: {invoice.created_by.first_name}")
+        y -= 8 * mm
+        
+        if invoice.customer_phone:
+            c.drawString(4 * mm, y, f"Customer: {invoice.customer_phone}")
+            y -= 6 * mm
+            
+        c.line(2 * mm, y, width - 2 * mm, y)
+        y -= 4 * mm
+        
+        # Items Header
+        c.setFont("Helvetica-Bold", 7)
+        c.drawString(4 * mm, y, "Item")
+        c.drawString(45 * mm, y, "Qty")
+        c.drawString(55 * mm, y, "Price")
+        c.drawString(70 * mm, y, "Total")
+        y -= 4 * mm
+        c.line(2 * mm, y, width - 2 * mm, y)
+        y -= 6 * mm
+        
+        # Items
+        c.setFont("Helvetica", 7)
+        for item in invoice.items.all():
+            name = item.product_name_snapshot[:20]
+            c.drawString(4 * mm, y, name)
+            c.drawString(45 * mm, y, "1")
+            c.drawString(55 * mm, y, f"{item.final_selling_price}")
+            c.drawString(70 * mm, y, f"{item.final_line_total}")
+            y -= 4 * mm
+            
+        y -= 2 * mm
+        c.line(2 * mm, y, width - 2 * mm, y)
+        y -= 6 * mm
+        
+        # Totals
+        c.setFont("Helvetica-Bold", 8)
+        c.drawString(30 * mm, y, "Grand Total:")
+        c.drawString(60 * mm, y, f"Rs {invoice.grand_total}")
+        y -= 6 * mm
+        
+        c.setFont("Helvetica", 7)
+        c.drawString(30 * mm, y, f"Payment Mode: {invoice.payment_mode}")
+        y -= 8 * mm
+        
+        # Footer
+        c.setFont("Helvetica", 7)
+        c.drawCentredString(width / 2.0, y, "Thank you for shopping with us!")
+        
+        c.showPage()
+        c.save()
+        buffer.seek(0)
+        return buffer

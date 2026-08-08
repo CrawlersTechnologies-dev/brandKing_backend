@@ -50,17 +50,24 @@ class InventoryInwardView(APIView):
         reference_number = serializer.validated_data.get('reference_number')
         items = serializer.validated_data.get('items')
 
-        # Ensure user belongs to a branch
+        # Ensure user belongs to a branch or specifies one
         branch = request.user.branch
         if not branch:
-            return error_response(message="You must be assigned to a branch to perform inward operations.")
-
+            branch_id = serializer.validated_data.get('branch_id')
+            if not branch_id:
+                return error_response(message="Since you are a Global Admin (no default branch), you must specify a 'branch_id' in the payload to receive stock.")
+            from apps.branches.models import Branch
+            branch = Branch.objects.filter(id=branch_id).first()
+            if not branch:
+                return error_response(message="Invalid branch_id provided.")
+        
         try:
             inward_record = InventoryService.process_inward(
                 user=request.user,
                 branch=branch,
+                items=items,
                 reference_number=reference_number,
-                items=items
+                remarks=serializer.validated_data.get('remarks')
             )
             return success_response(data={'inward_id': str(inward_record.id)}, message="Inventory inward processed successfully.", status=201)
         except ValueError as e:

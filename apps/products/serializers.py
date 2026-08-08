@@ -31,6 +31,8 @@ class HSNCodeSerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     barcode = serializers.CharField(required=False, allow_blank=True)
+    product_code = serializers.CharField(required=False, allow_blank=True)
+    sku = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = Product
@@ -66,5 +68,12 @@ class ProductSerializer(serializers.ModelSerializer):
         if not validated_data.get('barcode'):
             from apps.barcodes.services import BarcodeService
             validated_data['barcode'] = BarcodeService.generate_proprietary_barcode(None)
+            
+        # Automatically generate SKU if not provided
+        if not validated_data.get('product_code'):
+            import uuid
+            generated_sku = f"SKU-{uuid.uuid4().hex[:6].upper()}"
+            validated_data['product_code'] = generated_sku
+            validated_data['sku'] = generated_sku
 
         return super().create(validated_data)
