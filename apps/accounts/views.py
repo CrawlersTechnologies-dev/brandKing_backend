@@ -1,5 +1,5 @@
 from rest_framework import viewsets
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import IsAuthenticated
 from common.permissions import IsGlobalAdmin
 from common.responses import success_response, error_response
@@ -38,7 +38,7 @@ def handle_documents(user, request):
                 new_value={'document_type': doc.document_type}
             )
 
-from common.constants import ROLE_ADMIN, ROLE_SUB_ADMIN, ROLE_EMPLOYEE
+from common.constants import ROLE_ADMIN, ROLE_SUB_ADMIN, ROLE_CASHIER, ROLE_STORE_STAFF
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -118,8 +118,37 @@ class SubAdminViewSet(viewsets.ModelViewSet):
         
         return success_response(message="Sub-Admin deleted successfully", status=200)
 
+    @action(detail=True, methods=['post'], url_path='assign-branch')
+    def assign_branch(self, request, pk=None):
+        instance = self.get_object()
+        branch_id = request.data.get('branch')
+        
+        if not branch_id:
+            return error_response(message="branch is required.", status=400)
+            
+        try:
+            from apps.branches.models import Branch
+            branch = Branch.objects.get(id=branch_id)
+        except Branch.DoesNotExist:
+            return error_response(message="Branch not found.", status=404)
+            
+        instance.branch = branch
+        instance.save()
+        
+        AuditService.log(
+            user=request.user,
+            action='BRANCH_ASSIGNED',
+            module='ACCOUNTS',
+            object_type='User',
+            object_id=instance.id,
+            new_value={'branch_id': str(branch.id), 'branch_name': branch.name}
+        )
+        
+        serializer = self.get_serializer(instance)
+        return success_response(data=serializer.data, message="Branch assigned successfully.")
+
 class EmployeeViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.filter(role=ROLE_EMPLOYEE).order_by('-date_joined')
+    queryset = User.objects.filter(role__in=[ROLE_CASHIER, ROLE_STORE_STAFF]).order_by('-date_joined')
     serializer_class = UserSerializer
     from common.permissions import IsSubAdmin as SubAdminPermission
     permission_classes = [IsAuthenticated, SubAdminPermission]
@@ -152,7 +181,9 @@ class EmployeeViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
-        data['role'] = ROLE_EMPLOYEE
+        data['role'] = request.data.get('role', ROLE_STORE_STAFF)
+        if data['role'] not in [ROLE_CASHIER, ROLE_STORE_STAFF]:
+            return error_response(message="Invalid role. Must be CASHIER or STORE_STAFF.")
         
         if request.user.role == ROLE_SUB_ADMIN:
             if not request.user.branch_id:
@@ -170,7 +201,7 @@ class EmployeeViewSet(viewsets.ModelViewSet):
             module='ACCOUNTS',
             object_type='User',
             object_id=serializer.instance.id,
-            new_value={'email': serializer.instance.email, 'role': ROLE_EMPLOYEE}
+            new_value={'email': serializer.instance.email, 'role': serializer.instance.role}
         )
         
         handle_documents(serializer.instance, request)
@@ -178,6 +209,12 @@ class EmployeeViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
+        
+        # Prevent Sub-Admins from changing branch assignment
+        if request.user.role == ROLE_SUB_ADMIN and 'branch' in request.data:
+            if request.data['branch'] and str(request.data['branch']) != str(instance.branch_id):
+                raise PermissionDenied("Only Global Admins can reassign an employee to a different branch.")
+
         old_email = instance.email
         response = super().update(request, *args, **kwargs)
         
@@ -211,6 +248,34 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         
         return success_response(message="Employee deleted successfully", status=200)
 
+    @action(detail=True, methods=['post'], url_path='assign-branch', permission_classes=[IsAuthenticated, IsGlobalAdmin])
+    def assign_branch(self, request, pk=None):
+        instance = self.get_object()
+        branch_id = request.data.get('branch')
+        
+        if not branch_id:
+            return error_response(message="branch is required.", status=400)
+            
+        try:
+            from apps.branches.models import Branch
+            branch = Branch.objects.get(id=branch_id)
+        except Branch.DoesNotExist:
+            return error_response(message="Branch not found.", status=404)
+            
+        instance.branch = branch
+        instance.save()
+        
+        AuditService.log(
+            user=request.user,
+            action='BRANCH_ASSIGNED',
+            module='ACCOUNTS',
+            object_type='User',
+            object_id=instance.id,
+            new_value={'branch_id': str(branch.id), 'branch_name': branch.name}
+        )
+        
+        serializer = self.get_serializer(instance)
+        return success_response(data=serializer.data, message="Branch assigned successfully.")
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

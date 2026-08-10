@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from common.permissions import IsBranchEmployee
+from common.permissions import IsSubAdmin, IsStoreStaff
 from common.responses import success_response, error_response
 from apps.products.models import Product
 from apps.products.serializers import ProductSerializer
@@ -11,7 +11,7 @@ from .services import InventoryService
 
 class BranchStockViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = BranchStockSerializer
-    permission_classes = [IsAuthenticated, IsBranchEmployee]
+    permission_classes = [IsAuthenticated, IsStoreStaff]
 
     def get_queryset(self):
         user = self.request.user
@@ -26,7 +26,7 @@ class BranchStockViewSet(viewsets.ReadOnlyModelViewSet):
         return BranchStock.objects.filter(branch_id=user.branch_id).select_related('product')
 
 class BarcodeScanView(APIView):
-    permission_classes = [IsAuthenticated, IsBranchEmployee]
+    permission_classes = [IsAuthenticated, IsStoreStaff]
 
     def post(self, request):
         barcode = request.data.get('barcode')
@@ -41,7 +41,7 @@ class BarcodeScanView(APIView):
         return success_response(data=serializer.data, message="Product found.")
 
 class InventoryInwardView(APIView):
-    permission_classes = [IsAuthenticated, IsBranchEmployee]
+    permission_classes = [IsAuthenticated, IsStoreStaff]
 
     def post(self, request):
         serializer = InventoryInwardRequestSerializer(data=request.data)

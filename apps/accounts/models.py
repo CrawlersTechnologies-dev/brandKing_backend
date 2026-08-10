@@ -3,7 +3,7 @@ import os
 from django.db import models
 from .validators import validate_file_extension, validate_file_size
 from django.contrib.auth.models import AbstractUser, BaseUserManager
-from common.constants import ROLE_CHOICES, ROLE_EMPLOYEE, ROLE_SUB_ADMIN, ROLE_ADMIN
+from common.constants import ROLE_CHOICES, ROLE_STORE_STAFF, ROLE_SUB_ADMIN, ROLE_ADMIN
 from apps.branches.models import Branch
 
 class UserManager(BaseUserManager):
@@ -32,7 +32,7 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=ROLE_EMPLOYEE)
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=ROLE_STORE_STAFF)
     branch = models.ForeignKey(Branch, on_delete=models.SET_NULL, null=True, blank=True, related_name='employees')
     
     USERNAME_FIELD = 'email'

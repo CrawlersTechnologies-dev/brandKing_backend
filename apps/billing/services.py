@@ -75,17 +75,20 @@ class TaxCalculationService:
 
 class CartService:
     @staticmethod
-    def get_or_create_active_cart(user, branch):
+    def get_or_create_active_cart(user, branch, counter=None):
         cart, _ = Cart.objects.get_or_create(
             created_by=user, 
             branch=branch, 
             status='ACTIVE'
         )
+        if counter and cart.counter != counter:
+            cart.counter = counter
+            cart.save(update_fields=['counter'])
         return cart
 
     @staticmethod
-    def scan_barcode(user, branch, barcode):
-        cart = CartService.get_or_create_active_cart(user, branch)
+    def scan_barcode(user, branch, barcode, counter=None):
+        cart = CartService.get_or_create_active_cart(user, branch, counter=counter)
         
         with transaction.atomic():
             try:
@@ -151,7 +154,10 @@ class CartService:
     @staticmethod
     def resume_cart(user, cart_id):
         try:
-            cart_to_resume = Cart.objects.get(id=cart_id, created_by=user, status='ON_HOLD')
+            cart_to_resume = Cart.objects.get(id=cart_id, branch=user.branch, status='ON_HOLD')
+            # Transfer ownership of the cart to the new cashier
+            cart_to_resume.created_by = user
+            cart_to_resume.save(update_fields=['created_by'])
         except Cart.DoesNotExist:
             raise ValueError("Held cart not found.")
             
@@ -171,9 +177,12 @@ class CartService:
 class CheckoutService:
     @staticmethod
     @transaction.atomic
-    def process_checkout(user, cart_id, payment_mode, customer_phone=None, customer_name=None):
+    def process_checkout(user, cart_id, payment_mode, customer_phone=None, customer_name=None, counter=None):
         try:
             cart = Cart.objects.select_related('branch').get(id=cart_id, created_by=user)
+            if counter:
+                cart.counter = counter
+                cart.save(update_fields=['counter'])
         except Cart.DoesNotExist:
             raise ValueError("Cart not found.")
             
@@ -187,6 +196,7 @@ class CheckoutService:
             
         invoice = Invoice.objects.create(
             branch=cart.branch,
+            counter=cart.counter,
             invoice_number=generate_invoice_number(cart.branch),
             created_by=user,
             customer_phone=customer_phone or cart.customer_phone,
@@ -262,6 +272,25 @@ class CheckoutService:
             serial.save()
             
         invoice.save()
+        
+        # Customer Management & Loyalty Points
+        final_phone = customer_phone or cart.customer_phone
+        if final_phone:
+            from apps.customers.models import Customer
+            customer, created = Customer.objects.get_or_create(
+                phone_number=final_phone,
+                defaults={'name': customer_name or cart.customer_name}
+            )
+            # Add points: 1 point per 100 spent
+            points_earned = int(invoice.grand_total // 100)
+            customer.total_spent += invoice.grand_total
+            customer.loyalty_points += points_earned
+            
+            # If the name was updated/provided
+            if (customer_name or cart.customer_name) and not customer.name:
+                customer.name = customer_name or cart.customer_name
+                
+            customer.save()
         
         # Clear Cart
         cart.delete()

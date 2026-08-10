@@ -1,5 +1,5 @@
 from rest_framework.permissions import BasePermission
-from common.constants import ROLE_ADMIN, ROLE_SUB_ADMIN, ROLE_EMPLOYEE
+from common.constants import ROLE_ADMIN, ROLE_SUB_ADMIN, ROLE_CASHIER, ROLE_STORE_STAFF
 
 class IsGlobalAdmin(BasePermission):
     def has_permission(self, request, view):
@@ -9,7 +9,16 @@ class IsSubAdmin(BasePermission):
     def has_permission(self, request, view):
         return bool(request.user and request.user.is_authenticated and request.user.role in [ROLE_ADMIN, ROLE_SUB_ADMIN])
 
-class IsBranchEmployee(BasePermission):
+class IsCashier(BasePermission):
     def has_permission(self, request, view):
-        # We allow Admin, Sub-Admin, and Employee to act as an employee for their branch (except Admin who has all branches)
-        return bool(request.user and request.user.is_authenticated)
+        # Admins, Sub-Admins, and Cashiers can access billing
+        return bool(request.user and request.user.is_authenticated and request.user.role in [ROLE_ADMIN, ROLE_SUB_ADMIN, ROLE_CASHIER])
+
+class IsStoreStaff(BasePermission):
+    def has_permission(self, request, view):
+        # Admins, Sub-Admins, and Store Staff can access inventory/products
+        return bool(request.user and request.user.is_authenticated and request.user.role in [ROLE_ADMIN, ROLE_SUB_ADMIN, ROLE_STORE_STAFF])
+
+class IsBranchStaff(BasePermission):
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_authenticated and request.user.role in [ROLE_ADMIN, ROLE_SUB_ADMIN, ROLE_CASHIER, ROLE_STORE_STAFF])

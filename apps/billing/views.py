@@ -5,10 +5,10 @@ from .models import Cart, Invoice
 from .serializers import CartSerializer, InvoiceSerializer
 from .services import CartService, CheckoutService
 from common.responses import success_response, error_response
-from common.permissions import IsBranchEmployee
+from common.permissions import IsCashier
 
 class CartViewSet(viewsets.GenericViewSet):
-    permission_classes = [permissions.IsAuthenticated, IsBranchEmployee]
+    permission_classes = [permissions.IsAuthenticated, IsCashier]
     serializer_class = CartSerializer
 
     def get_queryset(self):
@@ -23,12 +23,17 @@ class CartViewSet(viewsets.GenericViewSet):
     @action(detail=False, methods=['post'])
     def scan(self, request):
         barcode = request.data.get('barcode')
+        counter_id = request.data.get('counter_id')
         if not barcode:
             return error_response(message="Barcode is required.", status=400)
-            
+        if not counter_id:
+            return error_response(message="counter_id is required.", status=400)
+
         branch = request.user.branch
         try:
-            cart = CartService.scan_barcode(request.user, branch, barcode)
+            from apps.branches.models import Counter
+            counter = Counter.objects.get(id=counter_id, branch=branch)
+            cart = CartService.scan_barcode(request.user, branch, barcode, counter=counter)
             serializer = self.get_serializer(cart)
             return success_response(data=serializer.data, message="Item added to cart.")
         except ValueError as e:
@@ -80,27 +85,31 @@ class CartViewSet(viewsets.GenericViewSet):
         payment_mode = request.data.get('payment_mode')
         customer_phone = request.data.get('customer_phone')
         customer_name = request.data.get('customer_name')
+        counter_id = request.data.get('counter_id')
         
-        if not cart_id or not payment_mode:
-            return error_response(message="cart_id and payment_mode are required.", status=400)
+        if not cart_id or not payment_mode or not counter_id:
+            return error_response(message="cart_id, payment_mode, and counter_id are required.", status=400)
             
         if payment_mode not in dict(Invoice.PAYMENT_MODES).keys():
-            return error_response(message="Invalid payment_mode.", status=400)
+            return error_response(message="Invalid payment mode.", status=400)
             
         try:
+            from apps.branches.models import Counter
+            counter = Counter.objects.get(id=counter_id, branch=request.user.branch)
             invoice = CheckoutService.process_checkout(
                 user=request.user,
                 cart_id=cart_id,
                 payment_mode=payment_mode,
                 customer_phone=customer_phone,
-                customer_name=customer_name
+                customer_name=customer_name,
+                counter=counter
             )
             return success_response(data={"invoice_id": str(invoice.id), "invoice_number": invoice.invoice_number}, message="Checkout successful!")
         except ValueError as e:
             return error_response(message=str(e), status=400)
 
 class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
-    permission_classes = [permissions.IsAuthenticated, IsBranchEmployee]
+    permission_classes = [permissions.IsAuthenticated, IsCashier]
     serializer_class = InvoiceSerializer
 
     def get_queryset(self):

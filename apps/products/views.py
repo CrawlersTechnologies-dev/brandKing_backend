@@ -5,8 +5,8 @@ from rest_framework.exceptions import PermissionDenied
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 
-from common.permissions import IsSubAdmin, IsBranchEmployee
-from common.constants import ROLE_EMPLOYEE
+from common.permissions import IsSubAdmin, IsBranchStaff
+from common.constants import ROLE_STORE_STAFF
 from common.responses import success_response, error_response
 from apps.audit.services import AuditService
 from apps.billing.services import TaxCalculationService
@@ -100,7 +100,7 @@ class HSNCodeViewSet(BaseMasterViewSet):
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all().order_by('-created_at')
     serializer_class = ProductSerializer
-    permission_classes = [IsAuthenticated, IsBranchEmployee]
+    permission_classes = [IsAuthenticated, IsBranchStaff]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['category', 'brand', 'product_type', 'hsn_code', 'gst_rate', 'is_active', 'is_locked']
     search_fields = ['name', 'product_code', 'barcode']
@@ -141,7 +141,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             attempted_changes = [f for f in locked_fields if f in self.request.data and self.request.data[f] != getattr(instance, f)]
             
             if attempted_changes:
-                if self.request.user.role == ROLE_EMPLOYEE:
+                if self.request.user.role == ROLE_STORE_STAFF:
                     raise PermissionDenied("This product is locked and cannot be modified by your role.")
                 
                 # If SubAdmin/Admin, we allow it but make sure it logs as an override

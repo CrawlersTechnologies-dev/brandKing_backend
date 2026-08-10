@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     'apps.audit',
     'apps.products',
     'apps.billing',
+    'apps.customers',
+    'apps.reports',
     'apps.inventory',
     'apps.purchases',
     'apps.barcodes',
