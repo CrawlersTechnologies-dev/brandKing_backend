@@ -177,7 +177,7 @@ class CartService:
 class CheckoutService:
     @staticmethod
     @transaction.atomic
-    def process_checkout(user, cart_id, payment_mode, customer_phone=None, customer_name=None, counter=None):
+    def process_checkout(user, cart_id, payment_mode, customer_phone=None, customer_name=None, counter=None, apply_credit=False):
         try:
             cart = Cart.objects.select_related('branch').get(id=cart_id, created_by=user)
             if counter:
@@ -281,6 +281,14 @@ class CheckoutService:
                 phone_number=final_phone,
                 defaults={'name': customer_name or cart.customer_name}
             )
+            
+            if apply_credit and customer.store_credit > 0:
+                credit_to_apply = min(customer.store_credit, invoice.grand_total)
+                customer.store_credit -= credit_to_apply
+                invoice.credit_applied = credit_to_apply
+                invoice.grand_total -= credit_to_apply
+                invoice.save()
+
             # Add points: 1 point per 100 spent
             points_earned = int(invoice.grand_total // 100)
             customer.total_spent += invoice.grand_total
@@ -291,6 +299,9 @@ class CheckoutService:
                 customer.name = customer_name or cart.customer_name
                 
             customer.save()
+            
+        elif apply_credit:
+            raise ValueError("Customer phone is required to apply store credit.")
         
         # Clear Cart
         cart.delete()

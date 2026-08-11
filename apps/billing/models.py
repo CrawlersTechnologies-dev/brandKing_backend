@@ -52,6 +52,7 @@ class Invoice(models.Model):
     total_cgst = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     total_sgst = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     total_igst = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    credit_applied = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     grand_total = models.DecimalField(max_digits=10, decimal_places=2)
     
     payment_mode = models.CharField(max_length=20, choices=PAYMENT_MODES)
@@ -90,3 +91,24 @@ class InvoiceItem(models.Model):
 
     def __str__(self):
         return f"{self.product_name_snapshot} - {self.final_line_total}"
+
+class ExchangeRequest(models.Model):
+    STATUS_CHOICES = (
+        ('PENDING', 'Pending Approval'),
+        ('APPROVED', 'Approved & Stock Updated'),
+        ('REJECTED', 'Rejected'),
+        ('COMPLETED', 'Exchange Completed')
+    )
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    branch = models.ForeignKey(Branch, on_delete=models.RESTRICT)
+    invoice = models.ForeignKey(Invoice, on_delete=models.RESTRICT, related_name='exchange_requests')
+    invoice_item = models.ForeignKey(InvoiceItem, on_delete=models.RESTRICT)
+    reason = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.RESTRICT, related_name='exchange_requests')
+    approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_exchanges')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'exchange_requests'

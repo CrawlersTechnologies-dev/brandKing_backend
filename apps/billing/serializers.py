@@ -42,3 +42,20 @@ class InvoiceSerializer(serializers.ModelSerializer):
             'total_taxable_amount', 'total_cgst', 'total_sgst', 'total_igst', 'grand_total',
             'payment_mode', 'created_at', 'items'
         ]
+
+from .models import ExchangeRequest
+
+class ExchangeRequestSerializer(serializers.ModelSerializer):
+    invoice_number = serializers.CharField(source='invoice.invoice_number', read_only=True)
+    product_name = serializers.CharField(source='invoice_item.product_name_snapshot', read_only=True)
+    requested_by_name = serializers.CharField(source='requested_by.get_full_name', read_only=True)
+    approved_by_name = serializers.CharField(source='approved_by.get_full_name', read_only=True)
+
+    class Meta:
+        model = ExchangeRequest
+        fields = [
+            'id', 'invoice', 'invoice_number', 'invoice_item', 'product_name',
+            'reason', 'status', 'requested_by', 'requested_by_name', 
+            'approved_by', 'approved_by_name', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['status', 'requested_by', 'approved_by', 'branch']

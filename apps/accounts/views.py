@@ -38,6 +38,24 @@ def handle_documents(user, request):
                 new_value={'document_type': doc.document_type}
             )
 
+    if 'id_proof' in request.FILES:
+        doc_type = request.data.get('id_proof_type', 'OTHER')
+        file_obj = request.FILES['id_proof']
+        doc, created = UserDocument.objects.update_or_create(
+            user=user,
+            document_type=doc_type,
+            defaults={'file': file_obj}
+        )
+        action = 'CREATED' if created else 'UPDATED'
+        AuditService.log(
+            user=request.user,
+            action=action,
+            module='ACCOUNTS',
+            object_type='UserDocument',
+            object_id=doc.id,
+            new_value={'document_type': doc.document_type}
+        )
+
 from common.constants import ROLE_ADMIN, ROLE_SUB_ADMIN, ROLE_CASHIER, ROLE_STORE_STAFF
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.views import APIView
