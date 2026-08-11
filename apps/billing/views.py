@@ -116,7 +116,17 @@ class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         branch = self.request.user.branch
-        return Invoice.objects.filter(branch=branch).order_by('-created_at')
+        qs = Invoice.objects.filter(branch=branch).order_by('-created_at')
+        
+        invoice_number = self.request.query_params.get('invoice_number')
+        if invoice_number:
+            qs = qs.filter(invoice_number__icontains=invoice_number)
+            
+        customer_phone = self.request.query_params.get('customer_phone')
+        if customer_phone:
+            qs = qs.filter(customer_phone__icontains=customer_phone)
+            
+        return qs
 
     @action(detail=True, methods=['get'])
     def print(self, request, pk=None):
