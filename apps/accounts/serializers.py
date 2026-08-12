@@ -62,3 +62,18 @@ class ResetPasswordRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
     otp = serializers.CharField(max_length=6, min_length=6)
     new_password = serializers.CharField(min_length=6)
+
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        # Add custom claims to the response payload
+        data['user'] = {
+            'id': str(self.user.id),
+            'email': self.user.email,
+            'first_name': self.user.first_name,
+            'role': self.user.role,
+            'branch_id': str(self.user.branch.id) if self.user.branch else None
+        }
+        return data

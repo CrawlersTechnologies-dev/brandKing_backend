@@ -20,6 +20,7 @@ urlpatterns = [
     path('api/customers/', include('apps.customers.urls')),
     path('api/reports/', include('apps.reports.urls')),
     path('api/barcodes/', include('apps.barcodes.urls')),
+    path('api/audit/', include('apps.audit.urls')),
 ]
 
 if settings.DEBUG:
