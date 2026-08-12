@@ -55,6 +55,22 @@ class CartViewSet(viewsets.GenericViewSet):
             return error_response(message=str(e), status=400)
 
     @action(detail=False, methods=['post'])
+    def apply_promo(self, request):
+        promo_code = request.data.get('promo_code')
+        if not promo_code:
+            return error_response(message="promo_code is required.", status=400)
+            
+        branch = request.user.branch
+        cart = CartService.get_or_create_active_cart(request.user, branch)
+        
+        try:
+            CartService.apply_promo_code(cart, promo_code)
+            serializer = self.get_serializer(cart)
+            return success_response(data=serializer.data, message="Promo code applied.")
+        except ValueError as e:
+            return error_response(message=str(e), status=400)
+
+    @action(detail=False, methods=['post'])
     def hold(self, request):
         cart_id = request.data.get('cart_id')
         try:
@@ -232,3 +248,52 @@ class ExchangeViewSet(viewsets.ModelViewSet):
                 customer.save()
 
         return success_response(message="Exchange approved, stock updated, and store credit issued.")
+
+from .models import Offer
+from .serializers import OfferSerializer
+from common.permissions import IsSubAdmin
+from common.constants import ROLE_ADMIN
+from apps.audit.services import AuditService
+
+class OfferViewSet(viewsets.ModelViewSet):
+    queryset = Offer.objects.all().order_by('-created_at')
+    serializer_class = OfferSerializer
+    permission_classes = [permissions.IsAuthenticated, IsSubAdmin]
+    
+    def perform_create(self, serializer):
+        user = self.request.user
+        status = 'ACTIVE' if user.role == ROLE_ADMIN else 'DRAFT'
+        offer = serializer.save(created_by=user, status=status)
+        
+        AuditService.log(
+            user=user,
+            action='CREATED_OFFER',
+            module='BILLING',
+            object_type='Offer',
+            object_id=str(offer.id),
+            new_value={'name': offer.name, 'status': status}
+        )
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def approve(self, request, pk=None):
+        offer = self.get_object()
+        user = request.user
+        
+        if user.role != ROLE_ADMIN:
+            return error_response(message='Only Global Admins can approve offers.', status=403)
+            
+        if offer.status != 'DRAFT':
+            return error_response(message='Only draft offers can be approved.', status=400)
+            
+        offer.status = 'ACTIVE'
+        offer.approved_by = user
+        offer.save()
+        
+        AuditService.log(
+            user=user,
+            action='APPROVED_OFFER',
+            module='BILLING',
+            object_type='Offer',
+            object_id=str(offer.id)
+        )
+        return success_response(message='Offer approved successfully.')

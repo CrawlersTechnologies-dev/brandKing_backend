@@ -59,3 +59,15 @@ class ExchangeRequestSerializer(serializers.ModelSerializer):
             'approved_by', 'approved_by_name', 'created_at', 'updated_at'
         ]
         read_only_fields = ['status', 'requested_by', 'approved_by', 'branch']
+
+
+from .models import Offer, OfferUsage
+
+class OfferSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.CharField(source='created_by.email', read_only=True)
+    approved_by_name = serializers.CharField(source='approved_by.email', read_only=True)
+
+    class Meta:
+        model = Offer
+        fields = '__all__'
+        read_only_fields = ['status', 'created_by', 'approved_by', 'times_used']

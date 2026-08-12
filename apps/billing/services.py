@@ -174,6 +174,123 @@ class CartService:
         cart_to_resume.save()
         return cart_to_resume
 
+    @staticmethod
+    def apply_promo_code(cart, promo_code):
+        from .models import Offer
+        from django.utils import timezone
+        now = timezone.now()
+        
+        # Validate promo code exists and is active
+        offer = Offer.objects.filter(
+            coupon_code=promo_code, 
+            status='ACTIVE',
+            start_date__lte=now,
+            end_date__gte=now
+        ).first()
+        
+        if not offer:
+            raise ValueError('Invalid, expired, or inactive promo code.')
+            
+        if offer.usage_limit > 0 and offer.times_used >= offer.usage_limit:
+            raise ValueError('This promo code has reached its usage limit.')
+            
+        cart.promo_code = promo_code
+        cart.save(update_fields=['promo_code'])
+        return cart
+
+
+class DiscountEngine:
+    @staticmethod
+    def calculate_discounts(cart, items):
+        from .models import Offer
+        from django.utils import timezone
+        from decimal import Decimal
+        
+        now = timezone.now()
+        
+        # Get active offers
+        active_offers = Offer.objects.filter(
+            status='ACTIVE',
+            start_date__lte=now,
+            end_date__gte=now
+        ).prefetch_related('applicable_products', 'applicable_categories', 'applicable_brands')
+        
+        # We will map each item to its best possible discount
+        item_discounts = {item.id: Decimal('0.00') for item in items}
+        applied_offers = []
+        
+        # 1. Evaluate Item-Level and Cart-Level rules
+        for offer in active_offers:
+            # Skip if usage limit reached
+            if offer.usage_limit > 0 and offer.times_used >= offer.usage_limit:
+                continue
+                
+            # If offer requires coupon, check if cart has it
+            if offer.coupon_code and offer.coupon_code != cart.promo_code:
+                continue
+                
+            # Determine eligible items for this offer
+            eligible_items = []
+            for item in items:
+                prod = item.product
+                is_eligible = False
+                
+                # Check targeting
+                if offer.applicable_products.exists():
+                    if offer.applicable_products.filter(id=prod.id).exists():
+                        is_eligible = True
+                elif offer.applicable_categories.exists():
+                    if prod.category and offer.applicable_categories.filter(id=prod.category.id).exists():
+                        is_eligible = True
+                elif offer.applicable_brands.exists():
+                    if prod.brand and offer.applicable_brands.filter(id=prod.brand.id).exists():
+                        is_eligible = True
+                else:
+                    # If no specific targeting, it applies to all
+                    is_eligible = True
+                    
+                if is_eligible:
+                    eligible_items.append(item)
+            
+            if not eligible_items:
+                continue
+                
+            # Apply discount logic
+            if offer.offer_type in ['PERCENTAGE', 'FLAT']:
+                for item in eligible_items:
+                    discount = Decimal('0.00')
+                    if offer.offer_type == 'PERCENTAGE':
+                        discount = item.price * (offer.discount_value / Decimal('100.0'))
+                    elif offer.offer_type == 'FLAT':
+                        discount = offer.discount_value
+                        
+                    # Keep the best discount
+                    if discount > item_discounts[item.id]:
+                        item_discounts[item.id] = min(discount, item.price)
+                        if offer not in applied_offers:
+                            applied_offers.append(offer)
+                            
+            elif offer.offer_type in ['BOGO', 'BUY_X_GET_Y']:
+                # E.g. Buy 2 Get 1
+                buy_q = offer.buy_quantity
+                get_q = offer.get_quantity
+                total_q = buy_q + get_q
+                
+                # Sort eligible items by price ascending so they get the cheapest ones free
+                eligible_items.sort(key=lambda x: x.price)
+                
+                # How many sets of (buy+get) do we have?
+                num_sets = len(eligible_items) // total_q
+                free_items_count = num_sets * get_q
+                
+                # Discount the cheapest 'free_items_count' items 100%
+                for i in range(free_items_count):
+                    item = eligible_items[i]
+                    item_discounts[item.id] = item.price # 100% free
+                    if offer not in applied_offers:
+                        applied_offers.append(offer)
+
+        return item_discounts, applied_offers
 class CheckoutService:
     @staticmethod
     @transaction.atomic
@@ -190,9 +307,12 @@ class CheckoutService:
         from apps.branches.models import Branch
         locked_branch = Branch.objects.select_for_update().get(id=cart.branch_id)
             
-        items = cart.items.select_related('product', 'serialized_item', 'product__hsn_code', 'product__gst_rate').all()
+        items = list(cart.items.select_related('product', 'serialized_item', 'product__hsn_code', 'product__gst_rate', 'product__category', 'product__brand').all())
         if not items:
             raise ValueError("Cart is empty.")
+            
+        # Calculate Discounts
+        item_discounts, applied_offers = DiscountEngine.calculate_discounts(cart, items)
             
         invoice = Invoice.objects.create(
             branch=cart.branch,
@@ -204,6 +324,7 @@ class CheckoutService:
             total_taxable_amount=Decimal('0.00'),
             total_cgst=Decimal('0.00'),
             total_sgst=Decimal('0.00'),
+            total_discount=Decimal('0.00'),
             total_igst=Decimal('0.00'),
             grand_total=Decimal('0.00'),
             payment_mode=payment_mode
@@ -231,7 +352,7 @@ class CheckoutService:
                 hsn_code_snapshot=product.hsn_code.code if product.hsn_code else '',
                 gst_rate_snapshot=gst_rate_val,
                 original_unit_price=product.selling_price,
-                discount_amount=Decimal('0.00'),
+                discount_amount=item_discount,
                 final_selling_price=tax_result['final_selling_price'],
                 taxable_amount=tax_result['taxable_amount'],
                 cgst_rate=tax_result['cgst_rate'],
@@ -244,6 +365,7 @@ class CheckoutService:
             )
             
             # Update Invoice Totals
+            invoice.total_discount += item_discount
             invoice.total_taxable_amount += tax_result['taxable_amount']
             invoice.total_cgst += tax_result['cgst_amount']
             invoice.total_sgst += tax_result['sgst_amount']
@@ -273,6 +395,25 @@ class CheckoutService:
             
         invoice.save()
         
+        # Record Offer Usages
+        from .models import OfferUsage
+        for offer in applied_offers:
+            offer.times_used += 1
+            offer.save(update_fields=['times_used'])
+            
+            customer_obj = None
+            if customer_phone or cart.customer_phone:
+                from apps.customers.models import Customer
+                customer_obj = Customer.objects.filter(phone_number=(customer_phone or cart.customer_phone)).first()
+            
+            OfferUsage.objects.create(
+                offer=offer,
+                invoice=invoice,
+                customer=customer_obj,
+                discount_applied=invoice.total_discount
+            )
+
+        
         # Customer Management & Loyalty Points
         final_phone = customer_phone or cart.customer_phone
         if final_phone:
@@ -288,7 +429,7 @@ class CheckoutService:
                 invoice.credit_applied = credit_to_apply
                 invoice.grand_total -= credit_to_apply
                 invoice.save()
-
+        
             # Add points: 1 point per 100 spent
             points_earned = int(invoice.grand_total // 100)
             customer.total_spent += invoice.grand_total

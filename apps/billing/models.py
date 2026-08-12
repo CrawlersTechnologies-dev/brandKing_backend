@@ -1,7 +1,8 @@
 import uuid
 from django.db import models
 from django.conf import settings
-from apps.products.models import Product
+from apps.products.models import Product, Category, Brand
+from apps.customers.models import Customer
 from apps.branches.models import Branch
 from apps.inventory.models import SerializedItem
 
@@ -16,6 +17,7 @@ class Cart(models.Model):
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.RESTRICT)
     customer_phone = models.CharField(max_length=20, blank=True, null=True)
     customer_name = models.CharField(max_length=255, blank=True, null=True)
+    promo_code = models.CharField(max_length=50, blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ACTIVE')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -49,6 +51,7 @@ class Invoice(models.Model):
     customer_name = models.CharField(max_length=255, blank=True, null=True)
     
     total_taxable_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    total_discount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     total_cgst = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     total_sgst = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     total_igst = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
@@ -112,3 +115,72 @@ class ExchangeRequest(models.Model):
 
     class Meta:
         db_table = 'exchange_requests'
+
+class Offer(models.Model):
+    OFFER_TYPES = (
+        ('PERCENTAGE', 'Percentage Discount'),
+        ('FLAT', 'Flat Amount Discount'),
+        ('BOGO', 'Buy One Get One'),
+        ('BUY_X_GET_Y', 'Buy X Get Y')
+    )
+    THEME_CHOICES = (
+        ('SEASONAL', 'Seasonal Offer'),
+        ('FESTIVAL', 'Festival Offer'),
+        ('CLEARANCE', 'Clearance Offer'),
+        ('SLOW_MOVING', 'Slow-Moving Stock Offer'),
+        ('LOYALTY', 'Loyalty Discount'),
+        ('GENERAL', 'General Offer')
+    )
+    STATUS_CHOICES = (
+        ('DRAFT', 'Draft'),
+        ('ACTIVE', 'Active'),
+        ('EXPIRED', 'Expired'),
+        ('REJECTED', 'Rejected')
+    )
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    offer_type = models.CharField(max_length=20, choices=OFFER_TYPES)
+    offer_theme = models.CharField(max_length=20, choices=THEME_CHOICES, default='GENERAL')
+    
+    discount_value = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    buy_quantity = models.IntegerField(default=1)
+    get_quantity = models.IntegerField(default=0)
+    
+    applicable_products = models.ManyToManyField(Product, blank=True, related_name='offers')
+    applicable_categories = models.ManyToManyField(Category, blank=True, related_name='offers')
+    applicable_brands = models.ManyToManyField(Brand, blank=True, related_name='offers')
+    applicable_customers = models.ManyToManyField(Customer, blank=True, related_name='specific_offers')
+    
+    coupon_code = models.CharField(max_length=50, blank=True, null=True, unique=True)
+    
+    start_date = models.DateTimeField()
+    end_date = models.DateTimeField()
+    
+    usage_limit = models.IntegerField(default=0, help_text="0 means unlimited")
+    times_used = models.IntegerField(default=0)
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT')
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.RESTRICT, related_name='created_offers')
+    approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_offers')
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'offers'
+
+    def __str__(self):
+        return self.name
+
+class OfferUsage(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    offer = models.ForeignKey(Offer, on_delete=models.RESTRICT, related_name='usages')
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='offer_usages')
+    customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True, related_name='offer_usages')
+    discount_applied = models.DecimalField(max_digits=10, decimal_places=2)
+    used_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'offer_usages'
