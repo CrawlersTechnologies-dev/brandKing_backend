@@ -499,3 +499,26 @@ from .serializers import CustomTokenObtainPairSerializer
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all().order_by('-date_joined')
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated, IsGlobalAdmin]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        handle_documents(serializer.instance, request)
+        
+        # Re-fetch data to include new documents
+        serializer = self.get_serializer(serializer.instance)
+        return success_response(data=serializer.data, message="User created successfully", status=201)
+
+    def update(self, request, *args, **kwargs):
+        response = super().update(request, *args, **kwargs)
+        handle_documents(self.get_object(), request)
+        
+        # Re-fetch data to include new documents
+        serializer = self.get_serializer(self.get_object())
+        return success_response(data=serializer.data, message="User updated successfully")

@@ -1,9 +1,10 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
-from .views import EmployeeViewSet, SubAdminViewSet, me, LogoutView, DocumentViewSet, serve_document, ForgotPasswordView, ResetPasswordView, CustomTokenObtainPairView
+from .views import EmployeeViewSet, SubAdminViewSet, me, LogoutView, DocumentViewSet, serve_document, ForgotPasswordView, ResetPasswordView, CustomTokenObtainPairView, UserViewSet
 
 router = DefaultRouter()
+router.register(r'users', UserViewSet, basename='user')
 router.register(r'employees', EmployeeViewSet, basename='employee')
 router.register(r'sub-admins', SubAdminViewSet, basename='subadmin')
 
@@ -11,8 +12,8 @@ urlpatterns = [
     path('', include(router.urls)),
     
     # Document APIs
-    path('employees/<uuid:user_id>/documents/', DocumentViewSet.as_view({'get': 'list', 'post': 'create'}), name='document-list'),
-    path('employees/<uuid:user_id>/documents/<uuid:pk>/', DocumentViewSet.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'}), name='document-detail'),
+    path('users/<uuid:user_id>/documents/', DocumentViewSet.as_view({'get': 'list', 'post': 'create'}), name='document-list'),
+    path('users/<uuid:user_id>/documents/<uuid:pk>/', DocumentViewSet.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'}), name='document-detail'),
     path('documents/<uuid:document_id>/serve/', serve_document, name='serve-document'),
 
     path('auth/login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),

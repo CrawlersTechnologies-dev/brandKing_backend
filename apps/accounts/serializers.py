@@ -37,6 +37,21 @@ class UserSerializer(serializers.ModelSerializer):
         mutable_data = data.copy() if hasattr(data, 'copy') else data
         if 'is_active' not in mutable_data:
             mutable_data['is_active'] = True
+            
+        if 'branch' in mutable_data:
+            branch_val = mutable_data['branch']
+            if branch_val:
+                import uuid
+                try:
+                    uuid.UUID(str(branch_val))
+                except ValueError:
+                    from apps.branches.models import Branch
+                    branch = Branch.objects.filter(name__iexact=branch_val).first() or Branch.objects.filter(code__iexact=branch_val).first()
+                    if branch:
+                        mutable_data['branch'] = branch.id
+                    else:
+                        raise serializers.ValidationError({"branch": f"No branch found matching '{branch_val}'"})
+                        
         return super().to_internal_value(mutable_data)
 
     def create(self, validated_data):
