@@ -39,6 +39,46 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['created_by', 'updated_by', 'is_locked']
 
+    def to_internal_value(self, data):
+        mutable_data = data.copy() if hasattr(data, 'copy') else data
+        
+        def resolve_fk(field, model_class, lookup_fields):
+            val = mutable_data.get(field)
+            if val:
+                from django.db.models import Q
+                
+                # Try primary key first
+                if str(val).isdigit() and model_class.objects.filter(id=val).exists():
+                    mutable_data[field] = int(val)
+                    return
+                        
+                # Look up by name/code
+                q_objects = Q()
+                for lf in lookup_fields:
+                    q_objects |= Q(**{f"{lf}__iexact": str(val)})
+                
+                if model_class == GSTRate and str(val).replace('.','',1).isdigit():
+                    q_objects |= Q(rate_percentage=val)
+                
+                obj = model_class.objects.filter(q_objects).first()
+                if obj:
+                    mutable_data[field] = obj.id
+                else:
+                    raise serializers.ValidationError({field: f"No matching {model_class.__name__} found for '{val}'"})
+
+        resolve_fk('category', Category, ['name', 'code'])
+        resolve_fk('brand', Brand, ['name', 'code'])
+        resolve_fk('product_type', ProductType, ['name', 'code'])
+        resolve_fk('hsn_code', HSNCode, ['code'])
+        resolve_fk('gst_rate', GSTRate, ['name'])
+        
+        for bool_field in ['is_active', 'is_locked']:
+            if bool_field in mutable_data:
+                val = str(mutable_data[bool_field]).lower()
+                mutable_data[bool_field] = val in ('true', '1', 't', 'y', 'yes')
+
+        return super().to_internal_value(mutable_data)
+
     def validate(self, data):
         # 1. Price non-negative validations
         if 'mrp' in data and data['mrp'] < 0:
@@ -69,11 +109,15 @@ class ProductSerializer(serializers.ModelSerializer):
             from apps.barcodes.services import BarcodeService
             validated_data['barcode'] = BarcodeService.generate_proprietary_barcode(None)
             
-        # Automatically generate SKU if not provided
-        if not validated_data.get('product_code'):
+        # Synchronize SKU and Product Code
+        if not validated_data.get('sku') and not validated_data.get('product_code'):
             import uuid
             generated_sku = f"SKU-{uuid.uuid4().hex[:6].upper()}"
             validated_data['product_code'] = generated_sku
             validated_data['sku'] = generated_sku
+        elif validated_data.get('sku') and not validated_data.get('product_code'):
+            validated_data['product_code'] = validated_data['sku']
+        elif validated_data.get('product_code') and not validated_data.get('sku'):
+            validated_data['sku'] = validated_data['product_code']
 
         return super().create(validated_data)
