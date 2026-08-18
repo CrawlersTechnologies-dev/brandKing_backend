@@ -38,39 +38,29 @@ class InventoryService:
                 if not product:
                     raise ValueError(f"Product with SKU {product_code} not found.")
             else:
-                # Need to create new product
-                # Ensure GST calculation works before saving
-                mrp = item.get('mrp')
-                selling_price = item.get('selling_price')
-                purchase_price = item.get('purchase_price') or 0.00
-                category_id = item.get('category_id')
-                brand_id = item.get('brand_id')
-                size = item.get('size')
-                colour = item.get('colour')
+                # Use ProductSerializer to create the product and handle all mapping/validation
+                from apps.products.serializers import ProductSerializer
+                product_data = {
+                    'name': item.get('name'),
+                    'category': item.get('category'),
+                    'brand': item.get('brand'),
+                    'product_type': item.get('product_type'),
+                    'hsn_code': item.get('hsn_code'),
+                    'gst_rate': item.get('gst_rate'),
+                    'size': item.get('size'),
+                    'colour': item.get('colour'),
+                    'mrp': item.get('mrp'),
+                    'selling_price': item.get('selling_price'),
+                    'purchase_price': item.get('purchase_price')
+                }
+                # Remove None values
+                product_data = {k: v for k, v in product_data.items() if v is not None}
                 
-                # Auto generate SKU
-                import uuid
-                generated_sku = f"SKU-{uuid.uuid4().hex[:6].upper()}"
+                serializer = ProductSerializer(data=product_data)
+                if not serializer.is_valid():
+                    raise ValueError(f"Invalid product data: {serializer.errors}")
                 
-                product = Product(
-                    name=item.get('name'),
-                    product_code=generated_sku, # product_code is SKU now
-                    sku=generated_sku,
-                    product_type_id=item.get('product_type_id'),
-                    category_id=category_id,
-                    brand_id=brand_id,
-                    size=size,
-                    colour=colour,
-                    hsn_code_id=item.get('hsn_code_id'),
-                    mrp=mrp,
-                    selling_price=selling_price,
-                    purchase_price=purchase_price,
-                    barcode=BarcodeService.generate_proprietary_barcode(branch.code),
-                    created_by=user
-                )
-                # Tax check will raise ValueError if invalid
-                TaxCalculationService.get_applicable_gst_rate(product)
-                product.save()
+                product = serializer.save(created_by=user)
 
                 AuditService.log(user, 'CREATE_INWARD', 'PRODUCT', 'Product', product.id, new_value=item)
 

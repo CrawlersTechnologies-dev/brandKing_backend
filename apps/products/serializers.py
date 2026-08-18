@@ -121,3 +121,15 @@ class ProductSerializer(serializers.ModelSerializer):
             validated_data['sku'] = validated_data['product_code']
 
         return super().create(validated_data)
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        
+        # Override the default ID numbers with the actual string names
+        representation['category'] = instance.category.name if instance.category else None
+        representation['brand'] = instance.brand.name if instance.brand else None
+        representation['product_type'] = instance.product_type.name if instance.product_type else None
+        representation['hsn_code'] = instance.hsn_code.code if instance.hsn_code else None
+        representation['gst_rate'] = instance.gst_rate.name if instance.gst_rate else None
+        
+        return representation

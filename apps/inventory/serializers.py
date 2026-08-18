@@ -18,26 +18,25 @@ class InwardItemSerializer(serializers.Serializer):
     product_code = serializers.CharField(required=False, allow_blank=True, help_text="SKU/Code of the product to inward")
     quantity = serializers.IntegerField(min_value=1)
     
-    # New product fields (Required if product_code is not provided)
+    # New product fields (Required if product_code/sku is not provided)
     name = serializers.CharField(required=False)
-    category_id = serializers.IntegerField(required=False)
-    product_type_id = serializers.IntegerField(required=False)
-    hsn_code_id = serializers.IntegerField(required=False)
-    gst_rate_id = serializers.IntegerField(required=False, allow_null=True)
+    category = serializers.CharField(required=False)
+    product_type = serializers.CharField(required=False)
+    hsn_code = serializers.CharField(required=False)
+    gst_rate = serializers.CharField(required=False, allow_null=True)
     mrp = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
     selling_price = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
     
     # Optional fields for new product
     purchase_price = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
-    brand_id = serializers.IntegerField(required=False, allow_null=True)
+    brand = serializers.CharField(required=False, allow_null=True)
     size = serializers.CharField(required=False, allow_blank=True)
     colour = serializers.CharField(required=False, allow_blank=True)
     remarks = serializers.CharField(required=False, allow_blank=True) # Wait, remarks goes on the InwardRequestSerializer, not Item. But wait, user said "Optional: Remarks". It might be item level or request level. Let's put it on InwardRequestSerializer.
 
     def validate(self, data):
         if not data.get('product_code') or ('name' in data and 'product_code' in data):
-            # If creating a new product, product_code might be provided as the new code (auto-generated now), but we must check if other fields exist
-            required_new = ['name', 'category_id', 'product_type_id', 'hsn_code_id', 'mrp', 'selling_price']
+            required_new = ['name', 'category', 'product_type', 'hsn_code', 'mrp', 'selling_price']
             missing = [f for f in required_new if not data.get(f)]
             if missing:
                 raise serializers.ValidationError(f"Missing required fields for new product creation: {', '.join(missing)}")
