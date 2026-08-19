@@ -83,6 +83,11 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
+        
+        if not self.user.is_approved:
+            from rest_framework.exceptions import AuthenticationFailed
+            raise AuthenticationFailed('Your account is pending approval by an administrator.')
+            
         # Add custom claims to the response payload
         data['user'] = {
             'id': str(self.user.id),

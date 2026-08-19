@@ -222,8 +222,33 @@ class EmployeeViewSet(viewsets.ModelViewSet):
             new_value={'email': serializer.instance.email, 'role': serializer.instance.role}
         )
         
+        # Enforce approval workflow
+        if request.user.role == ROLE_SUB_ADMIN:
+            serializer.instance.is_approved = False
+            serializer.instance.save()
+            msg = "Employee created successfully. Pending Global Admin approval."
+        else:
+            serializer.instance.is_approved = True
+            serializer.instance.save()
+            msg = "Employee created successfully."
+
         handle_documents(serializer.instance, request)
-        return success_response(data=serializer.data, message="Employee created successfully", status=201)
+
+        # Re-fetch data to include new documents
+        serializer = self.get_serializer(serializer.instance)
+        return success_response(data=serializer.data, message=msg, status=201)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsGlobalAdmin])
+    def approve(self, request, pk=None):
+        employee = self.get_object()
+        if employee.is_approved:
+            return error_response(message="Employee is already approved.", status=400)
+        
+        employee.is_approved = True
+        employee.save()
+        
+        AuditService.log(request.user, 'APPROVE_USER', 'USER', 'User', employee.id, new_value={'is_approved': True})
+        return success_response(message="Employee approved successfully. They can now log in.")
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
