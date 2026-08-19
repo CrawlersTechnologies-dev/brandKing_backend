@@ -131,8 +131,15 @@ class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = InvoiceSerializer
 
     def get_queryset(self):
-        branch = self.request.user.branch
-        qs = Invoice.objects.filter(branch=branch).order_by('-created_at')
+        user = self.request.user
+        
+        if user.role == 'ADMIN':
+            qs = Invoice.objects.all().order_by('-created_at')
+            branch_id = self.request.query_params.get('branch_id')
+            if branch_id:
+                qs = qs.filter(branch_id=branch_id)
+        else:
+            qs = Invoice.objects.filter(branch=user.branch).order_by('-created_at')
         
         invoice_number = self.request.query_params.get('invoice_number')
         if invoice_number:
@@ -171,7 +178,19 @@ class ExchangeViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        return ExchangeRequest.objects.filter(branch=user.branch).order_by('-created_at')
+        if user.role == 'ADMIN':
+            qs = ExchangeRequest.objects.all().order_by('-created_at')
+            branch_id = self.request.query_params.get('branch_id')
+            if branch_id:
+                qs = qs.filter(branch_id=branch_id)
+        else:
+            qs = ExchangeRequest.objects.filter(branch=user.branch).order_by('-created_at')
+            
+        status = self.request.query_params.get('status')
+        if status:
+            qs = qs.filter(status=status.upper())
+            
+        return qs
 
     def create(self, request, *args, **kwargs):
         invoice_item_id = request.data.get('invoice_item')
