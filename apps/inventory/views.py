@@ -38,7 +38,34 @@ class BarcodeScanView(APIView):
             return error_response(message="Product not found. Needs creation.", status=404)
             
         serializer = ProductSerializer(product)
-        return success_response(data=serializer.data, message="Product found.")
+        data = serializer.data
+        
+        # Inject stock quantity for the current branch
+        branch = request.user.branch
+        if not branch:
+            # If Global Admin, try to get branch from payload (id, name, or code)
+            branch_val = request.data.get('branch') or request.data.get('branch_id')
+            if branch_val:
+                from apps.branches.models import Branch
+                import uuid
+                try:
+                    uuid.UUID(str(branch_val))
+                    branch = Branch.objects.filter(id=branch_val).first()
+                except ValueError:
+                    branch = Branch.objects.filter(name__iexact=branch_val).first() or Branch.objects.filter(code__iexact=branch_val).first()
+
+        if branch:
+            stock = BranchStock.objects.filter(product=product, branch=branch).first()
+            data['stock_quantity'] = stock.quantity if stock else 0
+            data['branch_name'] = branch.name
+        else:
+            # If still no branch (Global Admin didn't specify one), calculate total global stock across all branches
+            from django.db.models import Sum
+            total_stock = BranchStock.objects.filter(product=product).aggregate(total=Sum('quantity'))['total']
+            data['stock_quantity'] = total_stock if total_stock else 0
+            data['branch_name'] = "Global (All Branches)"
+        
+        return success_response(data=data, message="Product found.")
 
 class InventoryInwardView(APIView):
     permission_classes = [IsAuthenticated, IsStoreStaff]
