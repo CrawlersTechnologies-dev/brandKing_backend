@@ -316,3 +316,55 @@ class OfferViewSet(viewsets.ModelViewSet):
             object_id=str(offer.id)
         )
         return success_response(message='Offer approved successfully.')
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def toggle_status(self, request, pk=None):
+        offer = self.get_object()
+        user = request.user
+
+        if user.role != ROLE_ADMIN:
+            return error_response(message='Only Global Admins can toggle offer status.', status=403)
+
+        if offer.status == 'ACTIVE':
+            offer.status = 'EXPIRED'
+        elif offer.status == 'EXPIRED':
+            offer.status = 'ACTIVE'
+        else:
+            return error_response(message='Can only toggle status between ACTIVE and EXPIRED.', status=400)
+
+        offer.save()
+
+        AuditService.log(
+            user=user,
+            action=f'CHANGED_OFFER_STATUS_TO_{offer.status}',
+            module='BILLING',
+            object_type='Offer',
+            object_id=str(offer.id)
+        )
+        return success_response(message=f'Offer status changed to {offer.status}.')
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def toggle_status(self, request, pk=None):
+        offer = self.get_object()
+        user = request.user
+
+        if user.role != ROLE_ADMIN:
+            return error_response(message='Only Global Admins can toggle offer status.', status=403)
+
+        if offer.status == 'ACTIVE':
+            offer.status = 'EXPIRED'
+        elif offer.status == 'EXPIRED':
+            offer.status = 'ACTIVE'
+        else:
+            return error_response(message='Can only toggle status between ACTIVE and EXPIRED.', status=400)
+
+        offer.save()
+
+        AuditService.log(
+            user=user,
+            action=f'CHANGED_OFFER_STATUS_TO_{offer.status}',
+            module='BILLING',
+            object_type='Offer',
+            object_id=str(offer.id)
+        )
+        return success_response(message=f'Offer status changed to {offer.status}.')
