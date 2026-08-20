@@ -113,7 +113,8 @@ class GlobalDashboardView(APIView):
         
         invoices = Invoice.objects.filter(created_at__range=[start_date, end_date])
         revenue = invoices.aggregate(total=Sum('grand_total'))['total'] or Decimal('0.00')
-        gst_collection = invoices.aggregate(total=Sum('total_tax'))['total'] or Decimal('0.00')
+        gst_agg = invoices.aggregate(c=Sum('total_cgst'), s=Sum('total_sgst'), i=Sum('total_igst'))
+        gst_collection = (gst_agg['c'] or Decimal('0.00')) + (gst_agg['s'] or Decimal('0.00')) + (gst_agg['i'] or Decimal('0.00'))
         
         # B. Sales Trend (Recharts)
         trunc_func = TruncDay('created_at')
@@ -149,13 +150,12 @@ class GlobalDashboardView(APIView):
         # D. Recent Activities
         logs = AuditLog.objects.order_by('-timestamp')[:5]
         recent_activities = []
-        import humanize
         for log in logs:
             action = f"{log.action} {log.object_type}"
             msg = f"{action} by {log.user.first_name if log.user else 'System'}"
             recent_activities.append({
                 'message': msg,
-                'time_ago': humanize.naturaltime(timezone.now() - log.timestamp) if hasattr(humanize, 'naturaltime') else log.timestamp.strftime('%Y-%m-%d %H:%M')
+                'time_ago': log.timestamp.strftime('%Y-%m-%d %H:%M')
             })
             
         # Pending Approvals
@@ -185,9 +185,10 @@ class GlobalDashboardView(APIView):
             })
             
         # E. Top Products
+        from django.db.models import Count
         top_items = InvoiceItem.objects.filter(invoice__created_at__range=[start_date, end_date])\
             .values('product_name_snapshot')\
-            .annotate(total_sold=Sum('quantity'))\
+            .annotate(total_sold=Count('id'))\
             .order_by('-total_sold')[:5]
             
         top_products = []
