@@ -12,3 +12,9 @@ class CounterSerializer(serializers.ModelSerializer):
         model = Counter
         fields = '__all__'
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        if instance.branch:
+            representation['branch'] = instance.branch.name
+        return representation
