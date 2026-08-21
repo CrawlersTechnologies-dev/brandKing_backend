@@ -261,6 +261,14 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         employee.is_approved = True
         employee.save()
         
+        from django.utils import timezone
+        docs = employee.documents.all()
+        for doc in docs:
+            doc.is_verified = True
+            doc.verified_by = request.user
+            doc.verified_at = timezone.now()
+            doc.save()
+        
         AuditService.log(request.user, 'APPROVE_USER', 'USER', 'User', employee.id, new_value={'is_approved': True})
         return success_response(message="Employee approved successfully. They can now log in.")
 
@@ -574,6 +582,14 @@ class UserViewSet(viewsets.ModelViewSet):
 
         user_obj.is_approved = True
         user_obj.save()
+
+        from django.utils import timezone
+        docs = user_obj.documents.all()
+        for doc in docs:
+            doc.is_verified = True
+            doc.verified_by = request.user
+            doc.verified_at = timezone.now()
+            doc.save()
 
         AuditService.log(request.user, 'APPROVE_USER', 'USER', 'User', user_obj.id, new_value={'is_approved': True})
         return success_response(message="User approved successfully. They can now log in.")

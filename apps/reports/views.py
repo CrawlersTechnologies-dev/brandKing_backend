@@ -225,3 +225,119 @@ class GlobalDashboardView(APIView):
         }
         
         return success_response(data=data, message="Dashboard data fetched successfully.")
+
+class SubAdminDashboardView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role != 'SUB_ADMIN':
+            return error_response(message="Access Denied. Sub-Admin only.", status=403)
+
+        branch_id = request.user.branch_id
+        if not branch_id:
+            return error_response(message="Sub-Admin is not assigned to any branch.", status=400)
+
+        start_date_str = request.query_params.get('start_date')
+        end_date_str = request.query_params.get('end_date')
+        interval = request.query_params.get('interval', 'daily').lower()
+
+        end_date = timezone.now()
+        if end_date_str:
+            from django.utils.dateparse import parse_date
+            parsed_end = parse_date(end_date_str)
+            if parsed_end:
+                end_date = timezone.make_aware(timezone.datetime.combine(parsed_end, timezone.datetime.max.time()))
+
+        start_date = end_date - timedelta(days=30)
+        if start_date_str:
+            from django.utils.dateparse import parse_date
+            parsed_start = parse_date(start_date_str)
+            if parsed_start:
+                start_date = timezone.make_aware(timezone.datetime.combine(parsed_start, timezone.datetime.min.time()))
+
+        # A. Summary Cards
+        total_employees = User.objects.filter(is_active=True, branch_id=branch_id).count()
+        total_products = BranchStock.objects.filter(branch_id=branch_id, quantity__gt=0).count()
+
+        invoices = Invoice.objects.filter(branch_id=branch_id, created_at__range=[start_date, end_date])
+        revenue = invoices.aggregate(total=Sum('grand_total'))['total'] or Decimal('0.00')
+        gst_agg = invoices.aggregate(c=Sum('total_cgst'), s=Sum('total_sgst'), i=Sum('total_igst'))
+        gst_collection = (gst_agg['c'] or Decimal('0.00')) + (gst_agg['s'] or Decimal('0.00')) + (gst_agg['i'] or Decimal('0.00'))
+
+        # B. Sales Trend (Recharts)
+        trunc_func = TruncDay('created_at')
+        if interval == 'weekly':
+            trunc_func = TruncWeek('created_at')
+        elif interval == 'monthly':
+            trunc_func = TruncMonth('created_at')
+
+        trend_data = invoices.annotate(date=trunc_func).values('date').annotate(
+            revenue=Sum('grand_total')
+        ).order_by('date')
+
+        sales_trend = []
+        for t in trend_data:
+            if t['date']:
+                sales_trend.append({
+                    'date': t['date'].strftime('%Y-%m-%d'),
+                    'revenue': str(t['revenue'] or '0.00')
+                })
+
+        # D. Recent Activities
+        logs = AuditLog.objects.filter(user__branch_id=branch_id).order_by('-timestamp')[:5]
+        recent_activities = []
+        for log in logs:
+            action = f"{log.action} {log.object_type}"
+            msg = f"{action} by {log.user.first_name if log.user else 'System'}"
+            recent_activities.append({
+                'message': msg,
+                'time_ago': log.timestamp.strftime('%Y-%m-%d %H:%M')
+            })
+
+        # E. Top Products
+        from django.db.models import Count
+        top_items = InvoiceItem.objects.filter(invoice__branch_id=branch_id, invoice__created_at__range=[start_date, end_date])\
+            .values('product_name_snapshot')\
+            .annotate(total_sold=Count('id'))\
+            .order_by('-total_sold')[:5]
+
+        top_products = []
+        for item in top_items:
+            top_products.append({
+                'product_name': item['product_name_snapshot'],
+                'total_sold': item['total_sold']
+            })
+
+        # F. Low Stock Alerts
+        low_stocks = BranchStock.objects.filter(branch_id=branch_id, quantity__lt=10).select_related('product')[:10]
+        low_stock_alerts = []
+        for ls in low_stocks:
+            low_stock_alerts.append({
+                'product_name': ls.product.name,
+                'quantity_left': ls.quantity
+            })
+            
+        pending_returns = ExchangeRequest.objects.filter(status='PENDING', invoice__branch_id=branch_id)[:5]
+        pending_approvals = []
+        for r in pending_returns:
+            pending_approvals.append({
+                'type': 'Return Approval',
+                'details': r.invoice.invoice_number if r.invoice else str(r.id),
+                'id': str(r.id)
+            })
+
+        data = {
+            'summary_cards': {
+                'total_employees': total_employees,
+                'total_products': total_products,
+                'revenue': str(revenue),
+                'gst_collection': str(gst_collection)
+            },
+            'sales_trend': sales_trend,
+            'recent_activities': recent_activities,
+            'top_products': top_products,
+            'low_stock_alerts': low_stock_alerts,
+            'pending_approvals': pending_approvals
+        }
+
+        return success_response(data=data, message="Sub-Admin Dashboard data fetched successfully.")
