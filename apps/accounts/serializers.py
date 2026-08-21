@@ -44,10 +44,11 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'email', 'first_name', 'last_name', 'phone_number', 'address', 'role', 'branch', 'branch_details', 'is_active', 'password', 'documents']
+        fields = ['id', 'email', 'first_name', 'last_name', 'phone_number', 'address', 'role', 'branch', 'branch_name', 'branch_details', 'is_active', 'is_approved', 'password', 'documents']
         extra_kwargs = {
             'password': {'write_only': True},
             'is_active': {'default': True},
+            'is_approved': {'read_only': True},
         }
 
     def to_internal_value(self, data):

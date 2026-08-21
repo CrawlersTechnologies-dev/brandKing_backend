@@ -175,7 +175,17 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         qs = super().get_queryset()
         user = self.request.user
         if user.role == ROLE_SUB_ADMIN:
-            return qs.filter(branch_id=user.branch_id)
+            qs = qs.filter(branch_id=user.branch_id)
+            
+        is_approved = self.request.query_params.get('is_approved')
+        if is_approved is not None:
+            if is_approved.lower() != 'all':
+                is_approved_bool = is_approved.lower() in ['true', '1', 't', 'y', 'yes']
+                qs = qs.filter(is_approved=is_approved_bool)
+        else:
+            if getattr(self, 'action', None) == 'list':
+                qs = qs.filter(is_approved=True)
+            
         return qs
 
     def list(self, request, *args, **kwargs):
@@ -184,9 +194,6 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         
         queryset = self.get_queryset()
         
-        if branch_id and request.user.role == ROLE_ADMIN:
-            queryset = queryset.filter(branch_id=branch_id)
-            
         if is_approved is not None:
             is_approved_bool = is_approved.lower() in ['true', '1', 't', 'y', 'yes']
             queryset = queryset.filter(is_approved=is_approved_bool)
@@ -537,6 +544,18 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated, IsGlobalAdmin]
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        is_approved = self.request.query_params.get('is_approved')
+        if is_approved is not None:
+            if is_approved.lower() != 'all':
+                is_approved_bool = is_approved.lower() in ['true', '1', 't', 'y', 'yes']
+                qs = qs.filter(is_approved=is_approved_bool)
+        else:
+            if getattr(self, 'action', None) == 'list':
+                qs = qs.filter(is_approved=True)
+        return qs
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -546,6 +565,18 @@ class UserViewSet(viewsets.ModelViewSet):
         # Re-fetch data to include new documents
         serializer = self.get_serializer(serializer.instance)
         return success_response(data=serializer.data, message="User created successfully", status=201)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsGlobalAdmin])
+    def approve(self, request, pk=None):
+        user_obj = self.get_object()
+        if user_obj.is_approved:
+            return error_response(message="User is already approved.", status=400)
+
+        user_obj.is_approved = True
+        user_obj.save()
+
+        AuditService.log(request.user, 'APPROVE_USER', 'USER', 'User', user_obj.id, new_value={'is_approved': True})
+        return success_response(message="User approved successfully. They can now log in.")
 
     def update(self, request, *args, **kwargs):
         response = super().update(request, *args, **kwargs)
