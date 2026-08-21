@@ -37,6 +37,7 @@ class Category(models.Model):
     name = models.CharField(max_length=100)
     code = models.CharField(max_length=50, unique=True, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
+    parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='subcategories', help_text="Select a parent category if this is a sub-category")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -180,9 +180,16 @@ class EmployeeViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         branch_id = request.query_params.get('branch_id')
+        is_approved = request.query_params.get('is_approved')
+        
         queryset = self.get_queryset()
+        
         if branch_id and request.user.role == ROLE_ADMIN:
             queryset = queryset.filter(branch_id=branch_id)
+            
+        if is_approved is not None:
+            is_approved_bool = is_approved.lower() in ['true', '1', 't', 'y', 'yes']
+            queryset = queryset.filter(is_approved=is_approved_bool)
         
         page = self.paginate_queryset(queryset)
         if page is not None:

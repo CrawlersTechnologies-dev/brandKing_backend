@@ -21,8 +21,26 @@ class DocumentVerifySerializer(serializers.ModelSerializer):
         fields = ['is_verified', 'remarks']
 
 class UserSerializer(serializers.ModelSerializer):
+
+    def to_internal_value(self, data):
+        if hasattr(data, '_mutable'):
+            data = data.copy()
+        branch_val = data.get('branch')
+        if branch_val and isinstance(branch_val, str) and not branch_val.isdigit():
+            import uuid
+            try:
+                uuid.UUID(branch_val)
+            except ValueError:
+                from apps.branches.models import Branch
+                try:
+                    b = Branch.objects.get(name__iexact=branch_val)
+                    data['branch'] = b.id
+                except Branch.DoesNotExist:
+                    raise serializers.ValidationError({'branch': f"Branch '{branch_val}' does not exist."})
+        return super().to_internal_value(data)
     branch_details = BranchSerializer(source='branch', read_only=True)
     documents = UserDocumentSerializer(many=True, read_only=True)
+    branch_name = serializers.CharField(source='branch.name', read_only=True)
 
     class Meta:
         model = User

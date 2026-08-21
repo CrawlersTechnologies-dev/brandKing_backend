@@ -3,9 +3,26 @@ from .models import ProductType, GSTRate, HSNCode, Product, Category, Brand
 from apps.billing.services import TaxCalculationService
 
 class CategorySerializer(serializers.ModelSerializer):
+    parent_name = serializers.CharField(source='parent.name', read_only=True)
+    
     class Meta:
         model = Category
         fields = '__all__'
+
+    def to_internal_value(self, data):
+        # Create a mutable copy if it's a QueryDict (like from form-data)
+        if hasattr(data, '_mutable'):
+            data = data.copy()
+            
+        parent_val = data.get('parent')
+        if parent_val and isinstance(parent_val, str) and not parent_val.isdigit():
+            try:
+                parent_cat = Category.objects.get(name__iexact=parent_val)
+                data['parent'] = parent_cat.id
+            except Category.DoesNotExist:
+                raise serializers.ValidationError({"parent": f"Category '{parent_val}' does not exist."})
+                
+        return super().to_internal_value(data)
 
 class BrandSerializer(serializers.ModelSerializer):
     class Meta:
