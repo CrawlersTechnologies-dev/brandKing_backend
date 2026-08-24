@@ -342,11 +342,36 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance)
         return success_response(data=serializer.data, message="Branch assigned successfully.")
 
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def me(request):
-    serializer = UserSerializer(request.user)
-    return success_response(data=serializer.data, message="User profile fetched successfully")
+class MeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserSerializer(request.user)
+        return success_response(data=serializer.data, message="User profile fetched successfully")
+
+    def patch(self, request):
+        serializer = UserSerializer(request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return success_response(data=serializer.data, message="Profile updated successfully")
+        return error_response(message="Invalid data", errors=serializer.errors, status=400)
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        old_password = request.data.get('old_password')
+        new_password = request.data.get('new_password')
+
+        if not old_password or not new_password:
+            return error_response(message="old_password and new_password are required", status=400)
+
+        if not request.user.check_password(old_password):
+            return error_response(message="Incorrect old password", status=400)
+
+        request.user.set_password(new_password)
+        request.user.save()
+        return success_response(message="Password changed successfully")
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]

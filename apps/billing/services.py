@@ -294,7 +294,7 @@ class DiscountEngine:
 class CheckoutService:
     @staticmethod
     @transaction.atomic
-    def process_checkout(user, cart_id, payment_mode, customer_phone=None, customer_name=None, counter=None, apply_credit=False):
+    def process_checkout(user, cart_id, payment_mode, customer_phone=None, customer_name=None, counter=None, apply_credit=False, shift=None):
         try:
             cart = Cart.objects.select_related('branch').get(id=cart_id, created_by=user)
             if counter:
@@ -315,6 +315,7 @@ class CheckoutService:
         item_discounts, applied_offers = DiscountEngine.calculate_discounts(cart, items)
             
         invoice = Invoice.objects.create(
+            shift=shift,
             branch=cart.branch,
             counter=cart.counter,
             invoice_number=generate_invoice_number(cart.branch),

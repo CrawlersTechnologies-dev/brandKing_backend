@@ -341,3 +341,140 @@ class SubAdminDashboardView(APIView):
         }
 
         return success_response(data=data, message="Sub-Admin Dashboard data fetched successfully.")
+import json
+from decimal import Decimal
+from datetime import timedelta
+from django.utils import timezone
+from django.db.models import Sum, Count
+from django.db.models.functions import TruncDay, TruncWeek, TruncMonth
+from django.http import HttpResponse
+from rest_framework import viewsets
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+
+from common.responses import success_response, error_response
+from apps.branches.models import Branch
+from apps.inventory.models import BranchStock
+from apps.audit.models import AuditLog
+from apps.accounts.models import User
+from apps.products.models import Product
+from apps.billing.models import Invoice, InvoiceItem, ExchangeRequest, Offer
+
+from .models import Expense
+from .serializers import ExpenseSerializer
+from .services.report_generator import ReportGenerator
+from .services.exporters import ReportExporter
+
+class ExpenseViewSet(viewsets.ModelViewSet):
+    queryset = Expense.objects.all().order_by('-date')
+    serializer_class = ExpenseSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if self.request.user.role == 'SUB_ADMIN':
+            qs = qs.filter(branch_id=self.request.user.branch_id)
+        return qs
+
+    def perform_create(self, serializer):
+        branch = self.request.user.branch
+        if not branch:
+            raise ValueError("You must be assigned to a branch to record expenses.")
+        serializer.save(recorded_by=self.request.user, branch=branch)
+
+class ExportReportView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        report_type = request.query_params.get('type')
+        format_type = request.query_params.get('format', 'excel').lower()
+        start_date_str = request.query_params.get('start_date')
+        end_date_str = request.query_params.get('end_date')
+
+        if not report_type:
+            return error_response(message="Missing report 'type' parameter", status=400)
+
+        # Date parsing
+        end_date = timezone.now()
+        if end_date_str:
+            from django.utils.dateparse import parse_date
+            parsed_end = parse_date(end_date_str)
+            if parsed_end:
+                end_date = timezone.make_aware(timezone.datetime.combine(parsed_end, timezone.datetime.max.time()))
+
+        start_date = end_date - timedelta(days=30)
+        if start_date_str:
+            from django.utils.dateparse import parse_date
+            parsed_start = parse_date(start_date_str)
+            if parsed_start:
+                start_date = timezone.make_aware(timezone.datetime.combine(parsed_start, timezone.datetime.min.time()))
+
+        branch_id = request.user.branch_id if request.user.role == 'SUB_ADMIN' else None
+        
+        # Generator
+        data = []
+        headers = []
+        title = f"{report_type.replace('_', ' ').title()} Report"
+
+        if report_type == 'daily_sales':
+            raw = ReportGenerator.get_daily_sales(start_date, end_date, branch_id)
+            headers = ['Date', 'Total Revenue', 'Total Invoices', 'CGST', 'SGST', 'IGST']
+            data = [[r['date'].strftime('%Y-%m-%d'), r['total_revenue'], r['total_invoices'], r['total_cgst'], r['total_sgst'], r['total_igst']] for r in raw]
+
+        elif report_type == 'monthly_sales':
+            raw = ReportGenerator.get_monthly_sales(start_date, end_date, branch_id)
+            headers = ['Month', 'Total Revenue', 'Total Invoices']
+            data = [[r['month'].strftime('%Y-%m'), r['total_revenue'], r['total_invoices']] for r in raw]
+
+        elif report_type == 'stock_report':
+            raw = ReportGenerator.get_stock_report(branch_id)
+            headers = ['Branch', 'Product Name', 'Product Code', 'Quantity', 'Purchase Price', 'Total Valuation']
+            data = [[r['branch'], r['product_name'], r['product_code'], r['quantity'], r['purchase_price'], r['total_valuation']] for r in raw]
+
+        elif report_type == 'expense_report':
+            raw = ReportGenerator.get_expense_report(start_date, end_date, branch_id)
+            headers = ['Date', 'Branch', 'Category', 'Amount', 'Recorded By', 'Notes']
+            data = [[r['date'], r['branch__name'], r['category'], r['amount'], r['recorded_by__first_name'], r['notes']] for r in raw]
+
+        elif report_type == 'profit_summary':
+            raw = ReportGenerator.get_profit_summary(start_date, end_date, branch_id)
+            headers = ['Metric', 'Amount']
+            data = [
+                ['Total Revenue', raw['total_revenue']],
+                ['Cost of Goods Sold', raw['cost_of_goods_sold']],
+                ['Gross Profit', raw['gross_profit']],
+                ['Total Expenses', raw['total_expenses']],
+                ['Net Profit', raw['net_profit']]
+            ]
+
+        elif report_type == 'gst_report':
+            raw = ReportGenerator.get_gst_report(start_date, end_date, branch_id)
+            headers = ['Invoice Number', 'Date', 'Grand Total', 'CGST', 'SGST', 'IGST']
+            data = [[r['invoice_number'], r['created_at'].strftime('%Y-%m-%d'), r['grand_total'], r['total_cgst'], r['total_sgst'], r['total_igst']] for r in raw]
+
+        elif report_type == 'returns_report':
+            raw = ReportGenerator.get_returns_report(start_date, end_date, branch_id)
+            headers = ['Request ID', 'Invoice Number', 'Status', 'Date', 'Approved By']
+            data = [[r['id'], r['invoice__invoice_number'], r['status'], r['created_at'].strftime('%Y-%m-%d'), r['approved_by__first_name']] for r in raw]
+
+        elif report_type == 'cashier_sales':
+            raw = ReportGenerator.get_cashier_sales(start_date, end_date, branch_id)
+            headers = ['Cashier Name', 'Total Revenue', 'Total Invoices']
+            data = [[f"{r['created_by__first_name']} {r['created_by__last_name']}", r['total_revenue'], r['total_invoices']] for r in raw]
+            
+        else:
+            return error_response(message="Invalid report type", status=400)
+
+        # Export
+        if format_type == 'pdf':
+            file_data = ReportExporter.generate_pdf(data, headers, title)
+            content_type = 'application/pdf'
+            ext = 'pdf'
+        else:
+            file_data = ReportExporter.generate_excel(data, headers, title)
+            content_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            ext = 'xlsx'
+
+        response = HttpResponse(file_data, content_type=content_type)
+        response['Content-Disposition'] = f'attachment; filename="{report_type}_{timezone.now().strftime("%Y%m%d")}.{ext}"'
+        return response

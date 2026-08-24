@@ -112,7 +112,14 @@ class CartViewSet(viewsets.GenericViewSet):
             
         try:
             from apps.branches.models import Counter
+            from apps.billing.models import Shift
             counter = Counter.objects.get(id=counter_id, branch=request.user.branch)
+            
+            # Anti-Fraud: Enforce Shift Management
+            active_shift = Shift.objects.filter(cashier=request.user, status='OPEN').first()
+            if not active_shift:
+                return error_response(message="You must open your cash register (start a shift) before processing sales.", status=403)
+                
             invoice = CheckoutService.process_checkout(
                 user=request.user,
                 cart_id=cart_id,
@@ -120,7 +127,8 @@ class CartViewSet(viewsets.GenericViewSet):
                 customer_phone=customer_phone,
                 customer_name=customer_name,
                 counter=counter,
-                apply_credit=apply_credit
+                apply_credit=apply_credit,
+                shift=active_shift
             )
             return success_response(data={"invoice_id": str(invoice.id), "invoice_number": invoice.invoice_number}, message="Checkout successful!")
         except ValueError as e:
@@ -368,3 +376,87 @@ class OfferViewSet(viewsets.ModelViewSet):
             object_id=str(offer.id)
         )
         return success_response(message=f'Offer status changed to {offer.status}.')
+
+from .models import Shift
+from .serializers import ShiftSerializer
+class ShiftViewSet(viewsets.ModelViewSet):
+    queryset = Shift.objects.all().order_by('-opened_at')
+    serializer_class = ShiftSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if self.request.user.role == 'SUB_ADMIN':
+            qs = qs.filter(branch_id=self.request.user.branch_id)
+        elif self.request.user.role in ['CASHIER', 'STORE_STAFF']:
+            qs = qs.filter(cashier=self.request.user)
+        return qs
+
+    @action(detail=False, methods=['post'])
+    def open(self, request):
+        counter_name = request.data.get('counter_name')
+        opening_balance = request.data.get('opening_balance', 0)
+
+        if not counter_name:
+            return error_response(message="counter_name is required", status=400)
+
+        branch = request.user.branch
+        if not branch:
+            return error_response(message="You are not assigned to any branch.", status=400)
+
+        try:
+            counter = Counter.objects.get(name__iexact=counter_name, branch=branch)
+        except Counter.DoesNotExist:
+            return error_response(message="Counter not found in your branch.", status=404)
+
+        # Check if user already has an open shift
+        existing_shift = Shift.objects.filter(cashier=request.user, status='OPEN').first()
+        if existing_shift:
+            return error_response(message="You already have an open shift.", status=400)
+
+        shift = Shift.objects.create(
+            branch=branch,
+            counter=counter,
+            cashier=request.user,
+            opening_balance=opening_balance,
+            status='OPEN'
+        )
+
+        return success_response(data=ShiftSerializer(shift).data, message="Shift opened successfully")
+
+    @action(detail=False, methods=['post'])
+    def close(self, request):
+        actual_balance = request.data.get('actual_balance')
+        notes = request.data.get('notes', '')
+
+        if actual_balance is None:
+            return error_response(message="actual_balance is required", status=400)
+
+        shift = Shift.objects.filter(cashier=request.user, status='OPEN').first()
+        if not shift:
+            return error_response(message="You do not have an open shift.", status=400)
+
+        # Calculate expected balance
+        invoices = Invoice.objects.filter(
+            shift=shift,
+            payment_method='CASH'
+        )
+        
+        cash_sales = invoices.aggregate(total=Sum('grand_total'))['total'] or Decimal('0.00')
+        
+        expected_balance = shift.opening_balance + cash_sales
+        actual_balance = Decimal(str(actual_balance))
+
+        shift.expected_balance = expected_balance
+        shift.actual_balance = actual_balance
+        shift.closed_at = timezone.now()
+        shift.notes = notes
+
+        if expected_balance != actual_balance:
+            shift.status = 'DISCREPANCY'
+        else:
+            shift.status = 'CLOSED'
+
+        shift.save()
+
+        return success_response(data=ShiftSerializer(shift).data, message=f"Shift closed with status: {shift.status}")

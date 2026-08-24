@@ -45,6 +45,7 @@ class Invoice(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     branch = models.ForeignKey(Branch, on_delete=models.RESTRICT)
     counter = models.ForeignKey('branches.Counter', on_delete=models.RESTRICT, null=True, blank=True)
+    shift = models.ForeignKey('Shift', on_delete=models.RESTRICT, null=True, blank=True)
     invoice_number = models.CharField(max_length=100, unique=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.RESTRICT)
     customer_phone = models.CharField(max_length=20, blank=True, null=True)
@@ -184,3 +185,30 @@ class OfferUsage(models.Model):
 
     class Meta:
         db_table = 'offer_usages'
+
+class Shift(models.Model):
+    STATUS_CHOICES = [
+        ('OPEN', 'Open'),
+        ('CLOSED', 'Closed'),
+        ('DISCREPANCY', 'Discrepancy'),
+    ]
+
+    branch = models.ForeignKey('branches.Branch', on_delete=models.RESTRICT, related_name='shifts')
+    counter = models.ForeignKey('branches.Counter', on_delete=models.RESTRICT, related_name='shifts')
+    cashier = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.RESTRICT, related_name='shifts')
+    
+    opened_at = models.DateTimeField(auto_now_add=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+    
+    opening_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    expected_balance = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    actual_balance = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='OPEN')
+    notes = models.TextField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'shifts'
+
+    def __str__(self):
+        return f"Shift {self.id} - {self.cashier} at {self.counter}"

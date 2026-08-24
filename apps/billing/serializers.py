@@ -43,7 +43,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             'payment_mode', 'created_at', 'items'
         ]
 
-from .models import ExchangeRequest
+from .models import ExchangeRequest, Shift
 
 class ExchangeRequestSerializer(serializers.ModelSerializer):
     invoice_number = serializers.CharField(source='invoice.invoice_number', read_only=True)
@@ -71,3 +71,12 @@ class OfferSerializer(serializers.ModelSerializer):
         model = Offer
         fields = '__all__'
         read_only_fields = ['status', 'created_by', 'approved_by', 'times_used']
+
+class ShiftSerializer(serializers.ModelSerializer):
+    cashier_name = serializers.CharField(source='cashier.first_name', read_only=True)
+    counter_name = serializers.CharField(source='counter.name', read_only=True)
+
+    class Meta:
+        model = Shift
+        fields = '__all__'
+
