@@ -133,6 +133,9 @@ SIMPLE_JWT = {
 
 # CORS Config
 CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = ["http://localhost:5173", "http://145.223.19.16"]
+CORS_ALLOW_CREDENTIALS = True
 
 # Console Email Backend for local development
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
