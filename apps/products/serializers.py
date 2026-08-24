@@ -84,6 +84,7 @@ class ProductSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError({field: f"No matching {model_class.__name__} found for '{val}'"})
 
         resolve_fk('category', Category, ['name', 'code'])
+        resolve_fk('sub_category', Category, ['name', 'code'])
         resolve_fk('brand', Brand, ['name', 'code'])
         resolve_fk('product_type', ProductType, ['name', 'code'])
         resolve_fk('hsn_code', HSNCode, ['code'])
@@ -144,6 +145,7 @@ class ProductSerializer(serializers.ModelSerializer):
         
         # Override the default ID numbers with the actual string names
         representation['category'] = instance.category.name if instance.category else None
+        representation['sub_category'] = instance.sub_category.name if instance.sub_category else None
         representation['brand'] = instance.brand.name if instance.brand else None
         representation['product_type'] = instance.product_type.name if instance.product_type else None
         representation['hsn_code'] = instance.hsn_code.code if instance.hsn_code else None

@@ -43,6 +43,7 @@ class InventoryService:
                 product_data = {
                     'name': item.get('name'),
                     'category': item.get('category'),
+                    'sub_category': item.get('sub_category'),
                     'brand': item.get('brand'),
                     'product_type': item.get('product_type'),
                     'hsn_code': item.get('hsn_code'),

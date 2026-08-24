@@ -21,6 +21,7 @@ class InwardItemSerializer(serializers.Serializer):
     # New product fields (Required if product_code/sku is not provided)
     name = serializers.CharField(required=False)
     category = serializers.CharField(required=False)
+    sub_category = serializers.CharField(required=False)
     product_type = serializers.CharField(required=False)
     hsn_code = serializers.CharField(required=False)
     gst_rate = serializers.CharField(required=False, allow_null=True)

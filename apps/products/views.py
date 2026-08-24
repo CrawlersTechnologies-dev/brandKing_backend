@@ -81,6 +81,21 @@ class CategoryViewSet(BaseMasterViewSet):
     queryset = Category.objects.all().order_by('-created_at')
     serializer_class = CategorySerializer
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        is_parent = self.request.query_params.get('is_parent')
+        if is_parent and is_parent.lower() in ['true', '1', 't', 'y']:
+            qs = qs.filter(parent__isnull=True)
+            
+        parent_name = self.request.query_params.get('parent')
+        if parent_name:
+            if parent_name.isdigit():
+                qs = qs.filter(parent_id=parent_name)
+            else:
+                qs = qs.filter(parent__name__iexact=parent_name)
+                
+        return qs
+
 class BrandViewSet(BaseMasterViewSet):
     queryset = Brand.objects.all().order_by('-created_at')
     serializer_class = BrandSerializer

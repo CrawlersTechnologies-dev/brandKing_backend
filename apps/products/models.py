@@ -136,7 +136,8 @@ class Product(models.Model):
     sku = models.CharField(max_length=100, unique=True, blank=True, null=True)
     barcode = models.CharField(max_length=100, unique=True)
     
-    category = models.ForeignKey(Category, on_delete=models.RESTRICT, blank=True, null=True)
+    category = models.ForeignKey(Category, on_delete=models.RESTRICT, blank=True, null=True, related_name='products')
+    sub_category = models.ForeignKey(Category, on_delete=models.RESTRICT, blank=True, null=True, related_name='sub_products')
     brand = models.ForeignKey(Brand, on_delete=models.RESTRICT, blank=True, null=True)
     
     product_type = models.ForeignKey(ProductType, on_delete=models.RESTRICT)
