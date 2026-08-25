@@ -377,13 +377,31 @@ class ExpenseViewSet(viewsets.ModelViewSet):
         return qs
 
     def perform_create(self, serializer):
-        branch = self.request.user.branch
+        user = self.request.user
+        branch = None
+
+        if user.role == 'ADMIN' and 'branch' in self.request.data:
+            from apps.branches.models import Branch
+            try:
+                branch = Branch.objects.get(id=self.request.data['branch'])
+            except Branch.DoesNotExist:
+                raise serializers.ValidationError({"branch": "Invalid branch ID provided."})
+
         if not branch:
-            raise ValueError("You must be assigned to a branch to record expenses.")
-        serializer.save(recorded_by=self.request.user, branch=branch)
+            branch = user.branch
+
+        if not branch:
+            raise serializers.ValidationError({"branch": "You must be assigned to a branch to record expenses."})
+            
+        serializer.save(recorded_by=user, branch=branch)
 
 class ExportReportView(APIView):
     permission_classes = [IsAuthenticated]
+
+    def perform_content_negotiation(self, request, force=False):
+        # Ignore DRF's format query parameter so ?format=pdf doesn't trigger 404
+        from rest_framework.renderers import JSONRenderer
+        return (JSONRenderer(), JSONRenderer.media_type)
 
     def get(self, request):
         report_type = request.query_params.get('type')

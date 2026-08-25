@@ -11,5 +11,5 @@ from rest_framework.routers import DefaultRouter
 router = DefaultRouter()
 router.register(r'expenses', ExpenseViewSet, basename='expense')
 
-urlpatterns.extend(router.urls)
 urlpatterns.append(path('export/', ExportReportView.as_view(), name='export-report'))
+urlpatterns.extend(router.urls)

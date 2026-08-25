@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Page not found at /api/reports/expenses/</title>
+  <meta name="robots" content="NONE,NOARCHIVE">
+  <style>
+    html * { padding:0; margin:0; }
+    body * { padding:10px 20px; }
+    body * * { padding:0; }
+    body { font-family: sans-serif; background:#eee; color:#000; }
+    body > :where(header, main, footer) { border-bottom:1px solid #ddd; }
+    h1 { font-weight:normal; margin-bottom:.4em; }
+    h1 small { font-size:60%; color:#666; font-weight:normal; }
+    table { border:none; border-collapse: collapse; width:100%; }
+    td, th { vertical-align:top; padding:2px 3px; }
+    th { width:12em; text-align:right; color:#666; padding-right:.5em; }
+    #info { background:#f6f6f6; }
+    #info ol { margin: 0.5em 4em; }
+    #info ol li { font-family: monospace; }
+    #summary { background: #ffc; }
+    #explanation { background:#eee; border-bottom: 0px none; }
+    pre.exception_value { font-family: sans-serif; color: #575757; font-size: 1.5em; margin: 10px 0 10px 0; }
+  </style>
+</head>
+<body>
+  <header id="summary">
+    <h1>Page not found <small>(404)</small></h1>
+    
+    <table class="meta">
+      <tr>
+        <th scope="row">Request Method:</th>
+        <td>GET</td>
+      </tr>
+      <tr>
+        <th scope="row">Request URL:</th>
+        <td>http://127.0.0.1:8000/api/reports/expenses/</td>
+      </tr>
+      
+    </table>
+  </header>
+
+  <main id="info">
+    
+      <p>
+      Using the URLconf defined in <code>config.urls</code>,
+      Django tried these URL patterns, in this order:
+      </p>
+      <ol>
+        
+          <li>
+            
+              <code>
+                admin/
+                
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/health/
+                [name='health_check']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^users/$
+                [name='user-list']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^users\.(?P&lt;format&gt;[a-z0-9]+)/?$
+                [name='user-list']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^users/(?P&lt;pk&gt;[^/.]+)/$
+                [name='user-detail']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^users/(?P&lt;pk&gt;[^/.]+)\.(?P&lt;format&gt;[a-z0-9]+)/?$
+                [name='user-detail']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^employees/$
+                [name='employee-list']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^employees\.(?P&lt;format&gt;[a-z0-9]+)/?$
+                [name='employee-list']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^employees/(?P&lt;pk&gt;[^/.]+)/$
+                [name='employee-detail']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^employees/(?P&lt;pk&gt;[^/.]+)\.(?P&lt;format&gt;[a-z0-9]+)/?$
+                [name='employee-detail']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^employees/(?P&lt;pk&gt;[^/.]+)/approve/$
+                [name='employee-approve']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^employees/(?P&lt;pk&gt;[^/.]+)/approve\.(?P&lt;format&gt;[a-z0-9]+)/?$
+                [name='employee-approve']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^employees/(?P&lt;pk&gt;[^/.]+)/assign-branch/$
+                [name='employee-assign-branch']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^employees/(?P&lt;pk&gt;[^/.]+)/assign-branch\.(?P&lt;format&gt;[a-z0-9]+)/?$
+                [name='employee-assign-branch']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^sub-admins/$
+                [name='subadmin-list']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^sub-admins\.(?P&lt;format&gt;[a-z0-9]+)/?$
+                [name='subadmin-list']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^sub-admins/(?P&lt;pk&gt;[^/.]+)/$
+                [name='subadmin-detail']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^sub-admins/(?P&lt;pk&gt;[^/.]+)\.(?P&lt;format&gt;[a-z0-9]+)/?$
+                [name='subadmin-detail']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^sub-admins/(?P&lt;pk&gt;[^/.]+)/assign-branch/$
+                [name='subadmin-assign-branch']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^sub-admins/(?P&lt;pk&gt;[^/.]+)/assign-branch\.(?P&lt;format&gt;[a-z0-9]+)/?$
+                [name='subadmin-assign-branch']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                
+                [name='api-root']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                &lt;drf_format_suffix:format&gt;
+                [name='api-root']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                users/&lt;uuid:user_id&gt;/documents/
+                [name='document-list']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                users/&lt;uuid:user_id&gt;/documents/&lt;uuid:pk&gt;/
+                [name='document-detail']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                documents/&lt;uuid:document_id&gt;/serve/
+                [name='serve-document']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                auth/login/
+                [name='token_obtain_pair']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                auth/refresh/
+                [name='token_refresh']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                auth/logout/
+                [name='auth_logout']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                auth/me/
+                [name='auth_me']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                auth/forgot-password/
+                [name='forgot_password']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                auth/reset-password/
+                [name='reset_password']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/branches/
+                
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^product-types/$
+                [name='producttype-list']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^product-types\.(?P&lt;format&gt;[a-z0-9]+)/?$
+                [name='producttype-list']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^product-types/(?P&lt;pk&gt;[^/.]+)/$
+                [name='producttype-detail']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^product-types/(?P&lt;pk&gt;[^/.]+)\.(?P&lt;format&gt;[a-z0-9]+)/?$
+                [name='producttype-detail']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^categories/$
+                [name='category-list']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^categories\.(?P&lt;format&gt;[a-z0-9]+)/?$
+                [name='category-list']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^categories/(?P&lt;pk&gt;[^/.]+)/$
+                [name='category-detail']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^categories/(?P&lt;pk&gt;[^/.]+)\.(?P&lt;format&gt;[a-z0-9]+)/?$
+                [name='category-detail']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^brands/$
+                [name='brand-list']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^brands\.(?P&lt;format&gt;[a-z0-9]+)/?$
+                [name='brand-list']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^brands/(?P&lt;pk&gt;[^/.]+)/$
+                [name='brand-detail']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^brands/(?P&lt;pk&gt;[^/.]+)\.(?P&lt;format&gt;[a-z0-9]+)/?$
+                [name='brand-detail']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^gst-rates/$
+                [name='gstrate-list']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^gst-rates\.(?P&lt;format&gt;[a-z0-9]+)/?$
+                [name='gstrate-list']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^gst-rates/(?P&lt;pk&gt;[^/.]+)/$
+                [name='gstrate-detail']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^gst-rates/(?P&lt;pk&gt;[^/.]+)\.(?P&lt;format&gt;[a-z0-9]+)/?$
+                [name='gstrate-detail']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^hsn-codes/$
+                [name='hsncode-list']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^hsn-codes\.(?P&lt;format&gt;[a-z0-9]+)/?$
+                [name='hsncode-list']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^hsn-codes/(?P&lt;pk&gt;[^/.]+)/$
+                [name='hsncode-detail']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^hsn-codes/(?P&lt;pk&gt;[^/.]+)\.(?P&lt;format&gt;[a-z0-9]+)/?$
+                [name='hsncode-detail']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^products/bulk-upload/confirm/$
+                [name='bulk-import-confirm']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^products/bulk-upload/confirm\.(?P&lt;format&gt;[a-z0-9]+)/?$
+                [name='bulk-import-confirm']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^products/bulk-upload/template/$
+                [name='bulk-import-template']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^products/bulk-upload/template\.(?P&lt;format&gt;[a-z0-9]+)/?$
+                [name='bulk-import-template']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^products/bulk-upload/validate/$
+                [name='bulk-import-validate']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^products/bulk-upload/validate\.(?P&lt;format&gt;[a-z0-9]+)/?$
+                [name='bulk-import-validate']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^products/bulk-upload/(?P&lt;pk&gt;[^/.]+)/errors/$
+                [name='bulk-import-errors']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^products/bulk-upload/(?P&lt;pk&gt;[^/.]+)/errors\.(?P&lt;format&gt;[a-z0-9]+)/?$
+                [name='bulk-import-errors']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^products/$
+                [name='product-list']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^products\.(?P&lt;format&gt;[a-z0-9]+)/?$
+                [name='product-list']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^products/(?P&lt;pk&gt;[^/.]+)/$
+                [name='product-detail']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^products/(?P&lt;pk&gt;[^/.]+)\.(?P&lt;format&gt;[a-z0-9]+)/?$
+                [name='product-detail']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^products/(?P&lt;pk&gt;[^/.]+)/lock/$
+                [name='product-lock']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                ^products/(?P&lt;pk&gt;[^/.]+)/lock\.(?P&lt;format&gt;[a-z0-9]+)/?$
+                [name='product-lock']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                
+                [name='api-root']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/
+                
+              </code>
+            
+              <code>
+                
+                
+              </code>
+            
+              <code>
+                &lt;drf_format_suffix:format&gt;
+                [name='api-root']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/inventory/
+                
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/billing/
+                
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/customers/
+                
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/reports/
+                
+              </code>
+            
+              <code>
+                revenue/
+                [name='revenue-report']
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/barcodes/
+                
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                api/audit/
+                
+              </code>
+            
+          </li>
+        
+          <li>
+            
+              <code>
+                ^media/(?P&lt;path&gt;.*)$
+                
+              </code>
+            
+          </li>
+        
+      </ol>
+      <p>
+        
+          The current path, <code>api/reports/expenses/</code>,
+        
+        didn’t match any of these.
+      </p>
+    
+  </main>
+
+  <footer id="explanation">
+    <p>
+      You’re seeing this error because you have <code>DEBUG = True</code> in
+      your Django settings file. Change that to <code>False</code>, and Django
+      will display a standard 404 page.
+    </p>
+  </footer>
+</body>
+</html>

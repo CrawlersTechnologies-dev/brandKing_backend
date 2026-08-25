@@ -8,4 +8,4 @@ class ExpenseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Expense
         fields = '__all__'
-        read_only_fields = ['recorded_by', 'created_at']
+        read_only_fields = ['recorded_by', 'created_at', 'branch']
