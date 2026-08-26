@@ -31,9 +31,9 @@ class HardwareIntegrationTests(TestCase):
         items = [{
             'name': 'Test Shirt',
             'product_code': 'TS-01',
-            'product_type_id': self.product_type.id,
-            'hsn_code_id': self.hsn.id,
-            'gst_rate_id': self.gst.id,
+            'product_type': self.product_type.id,
+            'hsn_code': self.hsn.id,
+            'gst_rate': self.gst.id,
             'mrp': 1000,
             'selling_price': 800,
             'purchase_price': 500,
