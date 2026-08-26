@@ -26,3 +26,28 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(action=action)
             
         return qs
+
+import io
+from django.core.management import call_command
+from django.http import HttpResponse
+from rest_framework.views import APIView
+from common.permissions import IsGlobalAdmin
+from django.utils import timezone
+from common.responses import error_response
+
+class DatabaseBackupView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsGlobalAdmin]
+
+    def get(self, request):
+        try:
+            output = io.StringIO()
+            # Exclude specific tables that shouldn't be backed up or cause issues during restore
+            call_command('dumpdata', exclude=['contenttypes', 'auth.permission', 'sessions'], stdout=output)
+            output.seek(0)
+            
+            response = HttpResponse(output.read(), content_type='application/json')
+            filename = f"db_backup_{timezone.now().strftime('%Y%m%d_%H%M%S')}.json"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+        except Exception as e:
+            return error_response(message=f"Backup failed: {str(e)}", status=500)
