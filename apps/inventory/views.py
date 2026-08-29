@@ -1,12 +1,12 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, permissions
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from common.permissions import IsSubAdmin, IsStoreStaff
 from common.responses import success_response, error_response
 from apps.products.models import Product
 from apps.products.serializers import ProductSerializer
-from .models import BranchStock, InventoryLog
-from .serializers import BranchStockSerializer, InventoryInwardRequestSerializer
+from .models import BranchStock, InventoryLog, SerializedItem
+from .serializers import BranchStockSerializer, InventoryInwardRequestSerializer, SerializedItemSerializer
 from .services import InventoryService
 
 class BranchStockViewSet(viewsets.ReadOnlyModelViewSet):
@@ -101,3 +101,24 @@ class InventoryInwardView(APIView):
             return error_response(message=str(e))
         except Exception as e:
             return error_response(message="An unexpected error occurred during inward processing.", errors=str(e), status=500)
+
+class SerializedItemViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = SerializedItemSerializer
+    permission_classes = [permissions.IsAuthenticated, IsStoreStaff]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = SerializedItem.objects.select_related('product')
+        
+        if user.role != 'ADMIN':
+            qs = qs.filter(branch_id=user.branch_id)
+            
+        status_param = self.request.query_params.get('status')
+        if status_param:
+            qs = qs.filter(status=status_param)
+            
+        product_code = self.request.query_params.get('product_code')
+        if product_code:
+            qs = qs.filter(product__product_code__icontains=product_code)
+            
+        return qs.order_by('-added_at')

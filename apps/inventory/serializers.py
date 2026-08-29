@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import BranchStock, InventoryLog
+from .models import BranchStock, InventoryLog, SerializedItem
 from apps.products.serializers import ProductSerializer
 
 class BranchStockSerializer(serializers.ModelSerializer):
@@ -13,6 +13,15 @@ class InventoryLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = InventoryLog
         fields = '__all__'
+
+class SerializedItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    product_code = serializers.CharField(source='product.product_code', read_only=True)
+    
+    class Meta:
+        model = SerializedItem
+        fields = ['id', 'product', 'product_name', 'product_code', 'branch', 'barcode', 'status', 'added_at']
+
 
 class InwardItemSerializer(serializers.Serializer):
     product_code = serializers.CharField(required=False, allow_blank=True, help_text="SKU/Code of the product to inward")
