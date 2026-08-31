@@ -335,11 +335,13 @@ class CheckoutService:
             product = item.product
             serial = item.serialized_item
             
+            item_discount = item_discounts.get(item.id, Decimal('0.00'))
+            
             # Tax Calculation
             gst_rate_val = TaxCalculationService.get_applicable_gst_rate(product)
             tax_result = TaxCalculationService.calculate_tax(
                 selling_price=item.price, 
-                discount=Decimal('0.00'), 
+                discount=item_discount, 
                 gst_rate=gst_rate_val, 
                 is_inter_state=False
             )
