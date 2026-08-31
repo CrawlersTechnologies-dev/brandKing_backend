@@ -114,7 +114,10 @@ class CartViewSet(viewsets.GenericViewSet):
         try:
             from apps.branches.models import Counter
             from apps.billing.models import Shift
-            counter = Counter.objects.get(id=counter_id, branch=request.user.branch)
+            try:
+                counter = Counter.objects.get(id=counter_id, branch=request.user.branch)
+            except Counter.DoesNotExist:
+                return error_response(message="Counter not found or does not belong to your branch.", status=404)
             
             # Anti-Fraud: Enforce Shift Management
             active_shift = Shift.objects.filter(cashier=request.user, status='OPEN').first()

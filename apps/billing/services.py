@@ -426,16 +426,16 @@ class CheckoutService:
                 defaults={'name': customer_name or cart.customer_name}
             )
             
-            if apply_credit and customer.store_credit > 0:
-                credit_to_apply = min(customer.store_credit, invoice.grand_total)
-                customer.store_credit -= credit_to_apply
+            if apply_credit and Decimal(str(customer.store_credit)) > 0:
+                credit_to_apply = min(Decimal(str(customer.store_credit)), invoice.grand_total)
+                customer.store_credit = Decimal(str(customer.store_credit)) - credit_to_apply
                 invoice.credit_applied = credit_to_apply
                 invoice.grand_total -= credit_to_apply
                 invoice.save()
         
             # Add points: 1 point per 100 spent
             points_earned = int(invoice.grand_total // 100)
-            customer.total_spent += invoice.grand_total
+            customer.total_spent = Decimal(str(customer.total_spent)) + invoice.grand_total
             customer.loyalty_points += points_earned
             
             # If the name was updated/provided
