@@ -34,12 +34,13 @@ class InvoiceItemSerializer(serializers.ModelSerializer):
 class InvoiceSerializer(serializers.ModelSerializer):
     items = InvoiceItemSerializer(many=True, read_only=True)
     created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
+    branch_name = serializers.CharField(source='branch.name', read_only=True)
 
     class Meta:
         model = Invoice
         fields = [
             'id', 'invoice_number', 'customer_phone', 'customer_name', 'created_by_name',
-            'total_taxable_amount', 'total_cgst', 'total_sgst', 'total_igst', 'grand_total',
+            'branch_name', 'total_taxable_amount', 'total_cgst', 'total_sgst', 'total_igst', 'grand_total',
             'payment_mode', 'created_at', 'items'
         ]
 
