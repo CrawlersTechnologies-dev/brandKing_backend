@@ -7,6 +7,8 @@ from .services import CartService, CheckoutService
 from apps.branches.models import Counter
 from common.responses import success_response, error_response
 from common.permissions import IsCashier
+from django.db.models import Sum
+from decimal import Decimal
 
 class CartViewSet(viewsets.GenericViewSet):
     permission_classes = [permissions.IsAuthenticated, IsCashier]
@@ -443,7 +445,7 @@ class ShiftViewSet(viewsets.ModelViewSet):
         # Calculate expected balance
         invoices = Invoice.objects.filter(
             shift=shift,
-            payment_method='CASH'
+            payment_mode='CASH'
         )
         
         cash_sales = invoices.aggregate(total=Sum('grand_total'))['total'] or Decimal('0.00')
