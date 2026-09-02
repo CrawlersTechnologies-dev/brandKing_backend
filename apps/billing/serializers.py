@@ -56,7 +56,7 @@ class ExchangeRequestSerializer(serializers.ModelSerializer):
         model = ExchangeRequest
         fields = [
             'id', 'invoice', 'invoice_number', 'invoice_item', 'product_name',
-            'reason', 'status', 'requested_by', 'requested_by_name', 
+            'request_type', 'reason', 'status', 'requested_by', 'requested_by_name', 
             'approved_by', 'approved_by_name', 'created_at', 'updated_at'
         ]
         read_only_fields = ['status', 'requested_by', 'approved_by', 'branch']

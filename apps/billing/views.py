@@ -204,11 +204,19 @@ class ExchangeViewSet(viewsets.ModelViewSet):
         if status:
             qs = qs.filter(status=status.upper())
             
+        request_type = self.request.query_params.get('request_type', 'EXCHANGE')
+        if request_type:
+            qs = qs.filter(request_type=request_type.upper())
+            
         return qs
 
     def create(self, request, *args, **kwargs):
         invoice_item_id = request.data.get('invoice_item')
         reason = request.data.get('reason')
+        request_type = request.data.get('request_type', 'EXCHANGE').upper()
+
+        if request_type not in ['RETURN', 'EXCHANGE']:
+            return error_response(message="request_type must be RETURN or EXCHANGE.", status=400)
 
         if not invoice_item_id or not reason:
             return error_response(message="invoice_item and reason are required.", status=400)
@@ -234,6 +242,7 @@ class ExchangeViewSet(viewsets.ModelViewSet):
             invoice=invoice,
             invoice_item=invoice_item,
             reason=reason,
+            request_type=request_type,
             requested_by=request.user,
             status='PENDING'
         )
@@ -466,3 +475,23 @@ class ShiftViewSet(viewsets.ModelViewSet):
         shift.save()
 
         return success_response(data=ShiftSerializer(shift).data, message=f"Shift closed with status: {shift.status}")
+
+
+class ReturnViewSet(ExchangeViewSet):
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(request_type='RETURN')
+
+    def create(self, request, *args, **kwargs):
+        request.data['request_type'] = 'RETURN'
+        return super().create(request, *args, **kwargs)
+
+
+class ReturnViewSet(ExchangeViewSet):
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(request_type='RETURN')
+
+    def create(self, request, *args, **kwargs):
+        request.data['request_type'] = 'RETURN'
+        return super().create(request, *args, **kwargs)

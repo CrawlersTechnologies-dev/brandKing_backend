@@ -103,10 +103,15 @@ class ExchangeRequest(models.Model):
         ('REJECTED', 'Rejected'),
         ('COMPLETED', 'Exchange Completed')
     )
+    TYPE_CHOICES = (
+        ('RETURN', 'Return (Refund to Store Credit)'),
+        ('EXCHANGE', 'Exchange (Swap for another item)')
+    )
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     branch = models.ForeignKey(Branch, on_delete=models.RESTRICT)
     invoice = models.ForeignKey(Invoice, on_delete=models.RESTRICT, related_name='exchange_requests')
     invoice_item = models.ForeignKey(InvoiceItem, on_delete=models.RESTRICT)
+    request_type = models.CharField(max_length=15, choices=TYPE_CHOICES, default='RETURN')
     reason = models.TextField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.RESTRICT, related_name='exchange_requests')
