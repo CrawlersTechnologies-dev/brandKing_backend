@@ -496,3 +496,37 @@ class ExportReportView(APIView):
         response = HttpResponse(file_data, content_type=content_type)
         response['Content-Disposition'] = f'attachment; filename="{report_type}_{timezone.now().strftime("%Y%m%d")}.{ext}"'
         return response
+
+class TopProductsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from apps.billing.models import InvoiceItem
+        from django.db.models import Count
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        limit = int(request.query_params.get('limit', 20))
+        branch_id = request.user.branch_id if request.user.role == 'SUB_ADMIN' else request.query_params.get('branch_id')
+        
+        qs = InvoiceItem.objects.all()
+        if branch_id:
+            qs = qs.filter(invoice__branch_id=branch_id)
+            
+        top_items = qs.values('product_name_snapshot', 'product_id').annotate(
+            total_sold=Count('id')
+        ).order_by('-total_sold')[:limit]
+        
+        top_products = []
+        for item in top_items:
+            top_products.append({
+                'product_id': item['product_id'],
+                'product_name': item['product_name_snapshot'],
+                'total_sold': item['total_sold']
+            })
+            
+        from rest_framework.response import Response
+        return Response({
+            'success': True,
+            'top_products': top_products
+        })
