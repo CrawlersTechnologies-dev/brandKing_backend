@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
-from .views import EmployeeViewSet, SubAdminViewSet, MeView, ChangePasswordView, LogoutView, DocumentViewSet, serve_document, ForgotPasswordView, ResetPasswordView, CustomTokenObtainPairView, UserViewSet
+from .views import EmployeeViewSet, SubAdminViewSet, MeView, ChangePasswordView, LogoutView, DocumentViewSet, serve_document, ForgotPasswordView, ResetPasswordView, CustomTokenObtainPairView, UserViewSet, ProfileImageView
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
@@ -15,6 +15,9 @@ urlpatterns = [
     path('users/<uuid:user_id>/documents/', DocumentViewSet.as_view({'get': 'list', 'post': 'create'}), name='document-list'),
     path('users/<uuid:user_id>/documents/<uuid:pk>/', DocumentViewSet.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'}), name='document-detail'),
     path('documents/<uuid:document_id>/serve/', serve_document, name='serve-document'),
+    
+    # Profile Image API
+    path('users/<uuid:user_id>/profile-image/', ProfileImageView.as_view(), name='profile-image'),
 
     path('auth/login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),

@@ -15,6 +15,17 @@ class UserDocumentSerializer(serializers.ModelSerializer):
             return f"{obj.verified_by.first_name} {obj.verified_by.last_name}".strip() or obj.verified_by.email
         return None
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Hide verification fields for Profile Photos to keep API clean
+        if instance.document_type == 'PROFILE_PHOTO':
+            data.pop('is_verified', None)
+            data.pop('verified_by', None)
+            data.pop('verified_by_name', None)
+            data.pop('verified_at', None)
+            data.pop('remarks', None)
+        return data
+
 class DocumentVerifySerializer(serializers.ModelSerializer):
     class Meta:
         model = UserDocument

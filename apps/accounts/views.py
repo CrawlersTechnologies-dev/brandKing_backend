@@ -626,3 +626,43 @@ class UserViewSet(viewsets.ModelViewSet):
         # Re-fetch data to include new documents
         serializer = self.get_serializer(self.get_object())
         return success_response(data=serializer.data, message="User updated successfully")
+
+
+class ProfileImageView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, user_id):
+        user = get_object_or_404(User, id=user_id)
+        if request.user.id != user.id and request.user.role not in [ROLE_ADMIN, ROLE_SUB_ADMIN]:
+            return error_response(message="Permission denied", status=403)
+        
+        doc = UserDocument.objects.filter(user=user, document_type='PROFILE_PHOTO').order_by('-uploaded_at').first()
+        if not doc:
+            return error_response(message="Profile image not found", status=404)
+        
+        serializer = UserDocumentSerializer(doc, context={'request': request})
+        return success_response(data=serializer.data, message="Profile image fetched")
+
+    def post(self, request, user_id):
+        user = get_object_or_404(User, id=user_id)
+        if request.user.id != user.id and request.user.role not in [ROLE_ADMIN, ROLE_SUB_ADMIN]:
+            return error_response(message="Permission denied", status=403)
+            
+        file = request.FILES.get('profile_image')
+        if not file:
+            return error_response(message="Please provide a profile_image file", status=400)
+            
+        doc, created = UserDocument.objects.update_or_create(
+            user=user, document_type='PROFILE_PHOTO',
+            defaults={'file': file}
+        )
+        serializer = UserDocumentSerializer(doc, context={'request': request})
+        return success_response(data=serializer.data, message="Profile image updated successfully")
+        
+    def delete(self, request, user_id):
+        user = get_object_or_404(User, id=user_id)
+        if request.user.id != user.id and request.user.role not in [ROLE_ADMIN, ROLE_SUB_ADMIN]:
+            return error_response(message="Permission denied", status=403)
+            
+        UserDocument.objects.filter(user=user, document_type='PROFILE_PHOTO').delete()
+        return success_response(message="Profile image deleted successfully")
