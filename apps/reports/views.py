@@ -530,3 +530,70 @@ class TopProductsView(APIView):
             'success': True,
             'top_products': top_products
         })
+
+
+class GSTReportView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        start_date_str = request.query_params.get('start_date')
+        end_date_str = request.query_params.get('end_date')
+
+        end_date = timezone.now()
+        if end_date_str:
+            from django.utils.dateparse import parse_date
+            parsed_end = parse_date(end_date_str)
+            if parsed_end:
+                end_date = timezone.make_aware(timezone.datetime.combine(parsed_end, timezone.datetime.max.time()))
+
+        start_date = end_date - timedelta(days=30)
+        if start_date_str:
+            from django.utils.dateparse import parse_date
+            parsed_start = parse_date(start_date_str)
+            if parsed_start:
+                start_date = timezone.make_aware(timezone.datetime.combine(parsed_start, timezone.datetime.min.time()))
+
+        invoices = Invoice.objects.filter(created_at__range=[start_date, end_date])
+        
+        branch_id = request.user.branch_id if request.user.role == 'SUB_ADMIN' else request.query_params.get('branch_id')
+        if branch_id:
+            invoices = invoices.filter(branch_id=branch_id)
+
+        totals = invoices.aggregate(
+            total_cgst=Sum('total_cgst'),
+            total_sgst=Sum('total_sgst'),
+            total_igst=Sum('total_igst')
+        )
+        
+        total_cgst = totals['total_cgst'] or Decimal('0.00')
+        total_sgst = totals['total_sgst'] or Decimal('0.00')
+        total_igst = totals['total_igst'] or Decimal('0.00')
+        total_gst = total_cgst + total_sgst + total_igst
+
+        daily_gst = invoices.annotate(day=TruncDay('created_at')).values('day').annotate(
+            cgst=Sum('total_cgst'),
+            sgst=Sum('total_sgst'),
+            igst=Sum('total_igst')
+        ).order_by('-day')
+        
+        breakdown = []
+        for day_data in daily_gst:
+            breakdown.append({
+                'date': day_data['day'].strftime('%Y-%m-%d'),
+                'cgst': str(day_data['cgst'] or '0.00'),
+                'sgst': str(day_data['sgst'] or '0.00'),
+                'igst': str(day_data['igst'] or '0.00'),
+                'total_daily_gst': str((day_data['cgst'] or Decimal('0.00')) + (day_data['sgst'] or Decimal('0.00')) + (day_data['igst'] or Decimal('0.00')))
+            })
+
+        data = {
+            'summary': {
+                'total_cgst': str(total_cgst),
+                'total_sgst': str(total_sgst),
+                'total_igst': str(total_igst),
+                'total_gst_collected': str(total_gst)
+            },
+            'daily_breakdown': breakdown
+        }
+
+        return success_response(data=data, message='GST report fetched successfully.')
