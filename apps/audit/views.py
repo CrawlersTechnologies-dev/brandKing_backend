@@ -25,6 +25,14 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
         if action:
             qs = qs.filter(action=action)
             
+        object_type = self.request.query_params.get('object_type')
+        if object_type:
+            qs = qs.filter(object_type=object_type)
+            
+        object_id = self.request.query_params.get('object_id')
+        if object_id:
+            qs = qs.filter(object_id=object_id)
+            
         return qs
 
 import io

@@ -302,6 +302,13 @@ class OfferViewSet(viewsets.ModelViewSet):
     serializer_class = OfferSerializer
     permission_classes = [permissions.IsAuthenticated, IsSubAdmin]
     
+    def get_queryset(self):
+        qs = super().get_queryset()
+        status = self.request.query_params.get('status')
+        if status:
+            qs = qs.filter(status=status.upper())
+        return qs
+        
     def perform_create(self, serializer):
         user = self.request.user
         status = 'ACTIVE' if user.role == ROLE_ADMIN else 'DRAFT'
