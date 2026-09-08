@@ -21,7 +21,30 @@ class ReportGenerator:
             total_igst=Sum('total_igst')
         ).order_by('date')
         
-        return list(data)
+        # Create a dictionary of results keyed by date
+        from datetime import timedelta
+        results_by_date = {item['date'].date() if hasattr(item['date'], 'date') else item['date']: item for item in data if item['date']}
+        
+        # Generate complete date range
+        final_data = []
+        current_date = start_date.date()
+        end_date_date = end_date.date()
+        
+        while current_date <= end_date_date:
+            if current_date in results_by_date:
+                final_data.append(results_by_date[current_date])
+            else:
+                final_data.append({
+                    'date': current_date,
+                    'total_revenue': 0.00,
+                    'total_invoices': 0,
+                    'total_cgst': 0.00,
+                    'total_sgst': 0.00,
+                    'total_igst': 0.00
+                })
+            current_date += timedelta(days=1)
+            
+        return final_data
 
     @staticmethod
     def get_monthly_sales(start_date, end_date, branch_id=None):
@@ -34,7 +57,34 @@ class ReportGenerator:
             total_invoices=Count('id')
         ).order_by('month')
         
-        return list(data)
+        # Create a dictionary of results keyed by (year, month)
+        results_by_month = {}
+        for item in data:
+            if item['month']:
+                dt = item['month']
+                results_by_month[(dt.year, dt.month)] = item
+                
+        # Generate complete month range
+        from dateutil.relativedelta import relativedelta
+        from datetime import datetime
+        
+        final_data = []
+        current_date = start_date.replace(day=1)
+        end_date_first_of_month = end_date.replace(day=1)
+        
+        while current_date <= end_date_first_of_month:
+            key = (current_date.year, current_date.month)
+            if key in results_by_month:
+                final_data.append(results_by_month[key])
+            else:
+                final_data.append({
+                    'month': current_date,
+                    'total_revenue': 0.00,
+                    'total_invoices': 0
+                })
+            current_date += relativedelta(months=1)
+            
+        return final_data
 
     @staticmethod
     def get_stock_report(branch_id=None):
