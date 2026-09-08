@@ -1,4 +1,5 @@
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, filters
+from django_filters.rest_framework import DjangoFilterBackend
 from .models import AuditLog
 from .serializers import AuditLogSerializer
 from common.permissions import IsSubAdmin
@@ -6,6 +7,9 @@ from common.permissions import IsSubAdmin
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = AuditLogSerializer
     permission_classes = [permissions.IsAuthenticated, IsSubAdmin]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['module', 'action', 'object_type', 'object_id', 'user', 'branch', 'role']
+    search_fields = ['old_value', 'new_value', 'object_type']
 
     def get_queryset(self):
         user = self.request.user
@@ -15,23 +19,6 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
         from common.constants import ROLE_SUB_ADMIN
         if user.role == ROLE_SUB_ADMIN:
             qs = qs.filter(branch=user.branch)
-            
-        # Optional filters
-        module = self.request.query_params.get('module')
-        if module:
-            qs = qs.filter(module=module)
-            
-        action = self.request.query_params.get('action')
-        if action:
-            qs = qs.filter(action=action)
-            
-        object_type = self.request.query_params.get('object_type')
-        if object_type:
-            qs = qs.filter(object_type=object_type)
-            
-        object_id = self.request.query_params.get('object_id')
-        if object_id:
-            qs = qs.filter(object_id=object_id)
             
         return qs
 
