@@ -41,6 +41,8 @@ class GSTRateSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_by', 'updated_by']
 
 class HSNCodeSerializer(serializers.ModelSerializer):
+    default_gst_rate_name = serializers.CharField(source='default_gst_rate.name', read_only=True)
+
     class Meta:
         model = HSNCode
         fields = '__all__'
