@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import RevenueReportView, GlobalDashboardView, SubAdminDashboardView, ExpenseViewSet, ExportReportView, TopProductsView, GSTReportView
+from .views import RevenueReportView, GlobalDashboardView, SubAdminDashboardView, EmployeeDashboardView, ExpenseViewSet, ExportReportView, TopProductsView, GSTReportView
 
 urlpatterns = [
     path('revenue/', RevenueReportView.as_view(), name='revenue-report'),
@@ -7,6 +7,7 @@ urlpatterns = [
     path('dashboard/', GlobalDashboardView.as_view(), name='global-dashboard'),
     path('top-products/', TopProductsView.as_view(), name='top-products'),
     path('subadmin-dashboard/', SubAdminDashboardView.as_view(), name='subadmin-dashboard'),
+    path('employee-dashboard/', EmployeeDashboardView.as_view(), name='employee-dashboard'),
 ]
 
 from rest_framework.routers import DefaultRouter
