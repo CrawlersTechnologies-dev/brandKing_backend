@@ -327,6 +327,7 @@ class SubAdminDashboardView(APIView):
             })
 
         data = {
+            'branch_name': request.user.branch.name if request.user.branch else None,
             'summary_cards': {
                 'total_employees': total_employees,
                 'total_products': total_products,
