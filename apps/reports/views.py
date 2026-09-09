@@ -11,10 +11,13 @@ class RevenueReportView(APIView):
 
     def get(self, request):
         branch = request.user.branch
-        if not branch:
-            return error_response(message="User has no branch assigned", status=400)
-            
-        invoices = Invoice.objects.filter(branch=branch)
+        branch_id = request.query_params.get('branch_id')
+        
+        invoices = Invoice.objects.all()
+        if branch_id:
+            invoices = invoices.filter(branch_id=branch_id)
+        elif branch:
+            invoices = invoices.filter(branch=branch)
         
         total_revenue = invoices.aggregate(total=Sum('grand_total'))['total'] or Decimal('0.00')
         total_sales = invoices.count()
