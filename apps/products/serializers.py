@@ -52,6 +52,9 @@ class ProductSerializer(serializers.ModelSerializer):
     barcode = serializers.CharField(required=False, allow_blank=True)
     product_code = serializers.CharField(required=False, allow_blank=True)
     sku = serializers.CharField(required=False, allow_blank=True)
+    category_name = serializers.CharField(source='category.name', read_only=True)
+    sub_category_name = serializers.CharField(source='sub_category.name', read_only=True)
+    brand_name = serializers.CharField(source='brand.name', read_only=True)
 
     class Meta:
         model = Product
