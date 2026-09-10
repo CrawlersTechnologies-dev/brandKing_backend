@@ -300,7 +300,11 @@ from apps.audit.services import AuditService
 class OfferViewSet(viewsets.ModelViewSet):
     queryset = Offer.objects.all().order_by('-created_at')
     serializer_class = OfferSerializer
-    permission_classes = [permissions.IsAuthenticated, IsSubAdmin]
+    
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [permissions.IsAuthenticated(), IsCashier()]
+        return [permissions.IsAuthenticated(), IsSubAdmin()]
     
     def get_queryset(self):
         qs = super().get_queryset()
