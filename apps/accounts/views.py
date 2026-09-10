@@ -609,7 +609,7 @@ class UserViewSet(viewsets.ModelViewSet):
         from django.conf import settings
         user = serializer.instance
         subject = 'Welcome to Brand King POS - Your Account Details'
-        message = f"Hello {user.first_name},\n\nYour account has been created successfully.\n\nLogin Details:\nEmail: {user.email}\nPassword: {raw_password}\nRole: {user.get_role_display()}\n\nPlease change your password after logging in.\n\nThanks,\nBrand King Team"
+        message = f"Hello {user.first_name},\n\nYour account has been created successfully.\n\nLogin Details:\nEmail: {user.email}\nPassword: {raw_password}\nRole: {user.get_role_display()}\n\nThanks,\nBrand King Team"
         try:
             send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=True)
         except Exception as e:
