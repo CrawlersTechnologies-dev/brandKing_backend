@@ -590,14 +590,34 @@ class UserViewSet(viewsets.ModelViewSet):
         return qs
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        data = request.data.copy() if hasattr(request.data, 'copy') else request.data
+        
+        # Auto-generate a password if not provided
+        raw_password = data.get('password')
+        if not raw_password:
+            import string, random
+            raw_password = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+            data['password'] = raw_password
+
+        serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         handle_documents(serializer.instance, request)
         
+        # Send Email
+        from django.core.mail import send_mail
+        from django.conf import settings
+        user = serializer.instance
+        subject = 'Welcome to Brand King POS - Your Account Details'
+        message = f"Hello {user.first_name},\n\nYour account has been created successfully.\n\nLogin Details:\nEmail: {user.email}\nPassword: {raw_password}\nRole: {user.get_role_display()}\n\nPlease change your password after logging in.\n\nThanks,\nBrand King Team"
+        try:
+            send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=True)
+        except Exception as e:
+            pass
+            
         # Re-fetch data to include new documents
-        serializer = self.get_serializer(serializer.instance)
-        return success_response(data=serializer.data, message="User created successfully", status=201)
+        serializer = self.get_serializer(user)
+        return success_response(data=serializer.data, message="User created successfully and email sent", status=201)
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsGlobalAdmin])
     def approve(self, request, pk=None):
