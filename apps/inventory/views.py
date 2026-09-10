@@ -121,4 +121,8 @@ class SerializedItemViewSet(viewsets.ReadOnlyModelViewSet):
         if product_code:
             qs = qs.filter(product__product_code__icontains=product_code)
             
+        barcode_param = self.request.query_params.get('barcode')
+        if barcode_param:
+            qs = qs.filter(barcode__icontains=barcode_param)
+            
         return qs.order_by('-added_at')
