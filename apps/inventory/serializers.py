@@ -17,10 +17,12 @@ class InventoryLogSerializer(serializers.ModelSerializer):
 class SerializedItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
     product_code = serializers.CharField(source='product.product_code', read_only=True)
+    category_name = serializers.CharField(source='product.category.name', read_only=True)
+    sub_category_name = serializers.CharField(source='product.sub_category.name', read_only=True)
     
     class Meta:
         model = SerializedItem
-        fields = ['id', 'product', 'product_name', 'product_code', 'branch', 'barcode', 'status', 'added_at']
+        fields = ['id', 'product', 'product_name', 'product_code', 'category_name', 'sub_category_name', 'branch', 'barcode', 'status', 'added_at']
 
 
 class InwardItemSerializer(serializers.Serializer):
